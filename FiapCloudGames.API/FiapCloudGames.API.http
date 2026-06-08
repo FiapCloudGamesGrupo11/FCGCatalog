@@ -1,0 +1,6 @@
+@FiapCloudGames.API_HostAddress = http://localhost:5137
+
+GET {{FiapCloudGames.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
