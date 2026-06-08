@@ -1,5 +1,7 @@
-﻿using FiapCloudGames.Domain.Interfaces;
+﻿using FiapCloudGames.Application.Interfaces;
+using FiapCloudGames.Domain.Interfaces;
 using FiapCloudGames.Infrastructure.Authorization;
+using FiapCloudGames.Infrastructure.MessageBus;
 using FiapCloudGames.Infrastructure.Persistence;
 using FiapCloudGames.Infrastructure.Repository;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +22,7 @@ namespace FiapCloudGames.Infrastructure
             services.AddScoped<IGameRepository, GameRepository>();
             services.AddScoped<IAuthHelpers, AuthHelpers>();
             services.AddScoped<IOnSaleRepository, OnSaleRepository>();
+            services.AddScoped<IEventBus, MessageBusService>();
 
             return services;
         }

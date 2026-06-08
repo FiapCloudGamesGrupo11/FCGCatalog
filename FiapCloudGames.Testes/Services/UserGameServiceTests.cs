@@ -1,3 +1,4 @@
+using FiapCloudGames.Application.Interfaces;
 using FiapCloudGames.Application.Services;
 using FiapCloudGames.Domain.Entity;
 using FiapCloudGames.Domain.Interfaces;
@@ -8,14 +9,17 @@ namespace FiapCloudGames.Testes.Services;
 public class UserGameServiceTests
 {
     private readonly Mock<IUserGameRepository> _userGameRepositoryMock;
+    private readonly Mock<IEventBus> _eventBusMock;
     private readonly UserGameService _userGameService;
 
     public UserGameServiceTests()
     {
         _userGameRepositoryMock = new Mock<IUserGameRepository>();
+        _eventBusMock = new Mock<IEventBus>();
 
         _userGameService = new UserGameService(
-            _userGameRepositoryMock.Object
+            _userGameRepositoryMock.Object,
+            _eventBusMock.Object
         );
     }
 
