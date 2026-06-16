@@ -28,10 +28,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Feature\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\FiapCloudGames.API\FiapCloudGames.API.csproj" />
     <ProjectReference Include="..\FiapCloudGames.Application\FiapCloudGames.Application.csproj" />
     <ProjectReference Include="..\FiapCloudGames.Domain\FiapCloudGames.Domain.csproj" />
