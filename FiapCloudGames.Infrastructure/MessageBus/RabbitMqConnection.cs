@@ -7,14 +7,13 @@ namespace FiapCloudGames.Infrastructure.MessageBus
     {
         private readonly ConnectionFactory _factory;
 
-        public RabbitMqConnection()
+        public RabbitMqConnection(RabbitMqSettings settings)
         {
-
             _factory = new ConnectionFactory
             {
-                HostName = "localhost",
-                UserName = "guest",
-                Password = "guest"
+                HostName = settings.Host,
+                UserName = settings.User,
+                Password = settings.Password
             };
         }
 

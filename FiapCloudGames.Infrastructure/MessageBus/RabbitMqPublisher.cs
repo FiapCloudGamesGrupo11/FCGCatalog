@@ -5,9 +5,7 @@ namespace FiapCloudGames.Infrastructure.MessageBus
 {
     public class RabbitMqPublisher : IMessagePublisher
     {
-
         private readonly IRabbitMqConnection _connection;
-
 
         public RabbitMqPublisher(
             IRabbitMqConnection connection)
@@ -15,14 +13,11 @@ namespace FiapCloudGames.Infrastructure.MessageBus
             _connection = connection;
         }
 
-
         public async Task PublishAsync(
             string queue,
             byte[] message)
         {
-
             var channel = await _connection.GetChannelAsync();
-
 
             await channel.QueueDeclareAsync(
                 queue: queue,
@@ -30,13 +25,10 @@ namespace FiapCloudGames.Infrastructure.MessageBus
                 exclusive: false,
                 autoDelete: false);
 
-
-
             await channel.BasicPublishAsync(
                 exchange: "",
                 routingKey: queue,
                 body: message);
-
         }
     }
 }

@@ -32,7 +32,14 @@ namespace FiapCloudGames.Infrastructure
         {
             // Configurações de persistência, como DbContext, etc.
             var connectionString = configuration.GetConnectionString("ConnectionString");
-            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));            
+            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+
+            var rabbitSettings =
+                configuration
+                .GetSection("RabbitMq")
+                .Get<RabbitMqSettings>();
+
+            services.AddSingleton(rabbitSettings);
 
             return services;
         }
