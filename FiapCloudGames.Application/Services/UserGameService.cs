@@ -1,19 +1,22 @@
 ﻿using FiapCloudGames.Application.Interfaces;
 using FiapCloudGames.Domain.Entity.MessageBus;
 using FiapCloudGames.Domain.Interfaces;
+using System.Text;
+using System.Text.Json;
 
 namespace FiapCloudGames.Application.Services
 {
     public class UserGameService : IUserGameService
     {
         private readonly IUserGameRepository _userGameRepository;
-        private readonly IEventBus _eventBus;
+        private readonly IMessagePublisher _publisher;
 
+        private const string _queueName = "order-placed";
 
-        public UserGameService(IUserGameRepository userGameRepository, IEventBus eventBus)
+        public UserGameService(IUserGameRepository userGameRepository, IMessagePublisher publisher)
         {
             _userGameRepository = userGameRepository;
-            _eventBus = eventBus;
+            _publisher = publisher;
         }
 
         public async Task AddGameToUser(
@@ -33,8 +36,9 @@ namespace FiapCloudGames.Application.Services
                 gameId,
                 valuePay,
                 DateTime.UtcNow);
+            var message = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(orderPlacedEvent));
 
-            await _eventBus.PublishAsync(orderPlacedEvent);
+            await _publisher.PublishAsync(_queueName, message);
         }
     }
 }
