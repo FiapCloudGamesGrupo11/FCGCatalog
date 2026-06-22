@@ -24,6 +24,8 @@ namespace FiapCloudGames.Infrastructure
 
             services.AddSingleton<IRabbitMqConnection, RabbitMqConnection>();
             services.AddScoped<IMessagePublisher, RabbitMqPublisher>();
+            services.AddSingleton<IRabbitMqConsumer, RabbitMqConsumer>();
+            services.AddHostedService<RabbitMqWorker>();
 
             return services;
         }

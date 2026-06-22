@@ -31,11 +31,15 @@ namespace FiapCloudGames.Application.Services
 
             await _userGameRepository.Create(userGame);
 
+            var paymentDetails = new PaymentDetails("Credit", "123456789", "123", "10/30");
+
             var orderPlacedEvent = new OrderPlacedEvent(
                 userId,
                 gameId,
                 valuePay,
-                DateTime.UtcNow);
+                DateTime.UtcNow,
+                paymentDetails);
+
             var message = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(orderPlacedEvent));
 
             await _publisher.PublishAsync(_queueName, message);
