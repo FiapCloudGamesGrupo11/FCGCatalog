@@ -1,6 +1,8 @@
 ﻿using FiapCloudGames.Application.Interfaces;
 using FiapCloudGames.Domain.Entity.MessageBus;
 using FiapCloudGames.Domain.Interfaces;
+using FiapCloudGames.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using System.Text;
 using System.Text.Json;
 
@@ -44,5 +46,7 @@ namespace FiapCloudGames.Application.Services
 
             await _publisher.PublishAsync(_queueName, message);
         }
+
+    
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace FiapCloudGames.Domain.Entity
+﻿using FiapCloudGames.Domain.Enums;
+
+namespace FiapCloudGames.Domain.Entity
 {
     public class UsersGames
     {
@@ -11,6 +13,8 @@
         public DateTime PurchaseDate { get; private set; }
         public decimal ValuePay { get; private set; }
 
+        public Status Status { get; private set; }
+
         protected UsersGames() { }
 
         public UsersGames(Guid userid, Guid jogoId, decimal valuePay)
@@ -19,6 +23,17 @@
             GameId = jogoId;
             ValuePay = valuePay;
             PurchaseDate = DateTime.UtcNow;
+            Status = Status.Pending;
+        }   
+
+        public void ActivateStatus()
+        {
+            Status = Status.Active;
+        }
+
+        public void BlockedStatus() {
+            Status = Status.Blocked;
         }
     }
+
 }
