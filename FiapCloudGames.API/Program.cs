@@ -15,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    options.JsonSerializerOptions.Converters.Add(new FiapCloudGames.Infrastructure.Utils.JsonDateTimeConverter());
+    options.JsonSerializerOptions.Converters.Add(new FiapCloudGames.Application.Utils.JsonDateTimeConverter());
 });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

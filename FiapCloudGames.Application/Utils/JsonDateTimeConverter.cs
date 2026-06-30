@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace FiapCloudGames.Infrastructure.Utils
+namespace FiapCloudGames.Application.Utils
 {
     public class JsonDateTimeConverter : JsonConverter<DateTime>
     {

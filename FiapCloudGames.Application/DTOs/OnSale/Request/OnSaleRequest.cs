@@ -1,6 +1,5 @@
-﻿using System;
-using System.Text.Json.Serialization;
-using FiapCloudGames.Infrastructure.Utils;
+﻿using System.Text.Json.Serialization;
+using FiapCloudGames.Application.Utils;
 
 namespace FiapCloudGames.Application.DTOs.OnSale.Request
 {
