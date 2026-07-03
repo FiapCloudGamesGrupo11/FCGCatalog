@@ -32,8 +32,10 @@ namespace FiapCloudGames.Application.Services
             await _userGameRepository.Create(userGame);
 
             var paymentDetails = new PaymentDetails("Credit", "123456789", "123", "10/30");
+            var orderId = Guid.NewGuid().ToString();
 
             var orderPlacedEvent = new OrderPlacedEvent(
+                orderId,
                 userId,
                 gameId,
                 valuePay,

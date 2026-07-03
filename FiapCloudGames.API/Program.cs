@@ -12,6 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ====================== SERVIÇOS ======================
 
+builder.Services.AddHealthChecks();
+
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -109,6 +111,8 @@ builder.Host.UseSerilog();
 // ====================== PIPELINE DE MIDDLEWARES ======================
 
 var app = builder.Build();
+
+app.MapHealthChecks("/health");
 
 // Middleware de Exceção - DEVE SER SEMPRE O PRIMEIRO
 app.UseCustomExceptionMiddleware();
