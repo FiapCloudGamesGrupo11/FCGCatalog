@@ -1,5 +1,4 @@
-﻿using FiapCloudGames.Application.Interfaces;
-using FiapCloudGames.Domain.Interfaces;
+﻿using FiapCloudGames.Domain.Interfaces;
 using FiapCloudGames.Infrastructure.Authorization;
 using FiapCloudGames.Infrastructure.MessageBus;
 using FiapCloudGames.Infrastructure.Persistence;
@@ -22,7 +21,11 @@ namespace FiapCloudGames.Infrastructure
             services.AddScoped<IGameRepository, GameRepository>();
             services.AddScoped<IAuthHelpers, AuthHelpers>();
             services.AddScoped<IOnSaleRepository, OnSaleRepository>();
-            services.AddScoped<IEventBus, MessageBusService>();
+
+            services.AddSingleton<IRabbitMqConnection, RabbitMqConnection>();
+            services.AddScoped<IMessagePublisher, RabbitMqPublisher>();
+            services.AddSingleton<IRabbitMqConsumer, RabbitMqConsumer>();
+            services.AddHostedService<RabbitMqWorker>();
 
             return services;
         }
@@ -32,6 +35,14 @@ namespace FiapCloudGames.Infrastructure
             // Configurações de persistência, como DbContext, etc.
             var connectionString = configuration.GetConnectionString("ConnectionString");
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+
+            var rabbitSettings =
+                configuration
+                .GetSection("RabbitMq")
+                .Get<RabbitMqSettings>();
+
+            services.AddSingleton(rabbitSettings);
+
             return services;
         }
 

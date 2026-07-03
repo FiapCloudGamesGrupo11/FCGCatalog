@@ -2,7 +2,10 @@
 {
     public enum Status
     {
-        PendingPayment = 1,
-        FinishPayment = 2,
+        Active = 1,
+        Blocked = 2,
+        Banned = 3,
+        Desactivated = 4,
+        Pending = 5
     }
 }
