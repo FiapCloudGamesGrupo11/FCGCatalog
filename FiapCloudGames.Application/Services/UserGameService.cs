@@ -1,8 +1,6 @@
 ﻿using FiapCloudGames.Application.Interfaces;
 using FiapCloudGames.Domain.Entity.MessageBus;
 using FiapCloudGames.Domain.Interfaces;
-using FiapCloudGames.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 using System.Text;
 using System.Text.Json;
 
@@ -34,8 +32,10 @@ namespace FiapCloudGames.Application.Services
             await _userGameRepository.Create(userGame);
 
             var paymentDetails = new PaymentDetails("Credit", "123456789", "123", "10/30");
+            var orderId = Guid.NewGuid();
 
             var orderPlacedEvent = new OrderPlacedEvent(
+                orderId,
                 userId,
                 gameId,
                 valuePay,

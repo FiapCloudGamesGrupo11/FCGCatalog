@@ -38,6 +38,11 @@ namespace FiapCloudGames.Infrastructure.Persistence.Configurations
                 .Property(ug => ug.PurchaseDate)
                 .HasColumnType("datetime2")
                 .IsRequired();
+
+            builder
+               .Property(ug => ug.Status)
+               .HasConversion<int>()
+               .IsRequired();
         }
     }
 }
