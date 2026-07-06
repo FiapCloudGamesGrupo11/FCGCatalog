@@ -9,7 +9,11 @@ services:
     ports:
       - "1433:1433"
     healthcheck:
-      test: [ "CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P $${SA_PASSWORD} -Q 'SELECT 1'" ]
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P $$SA_PASSWORD -C -Q 'SELECT 1'"
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -22,6 +26,12 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   api:
     build:
@@ -41,3 +51,56 @@ services:
       RabbitMq__Host: "rabbitmq"
       RabbitMq__User: "guest"
       RabbitMq__Password: "guest"
+
+  userapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: userapi:latest
+    container_name: fcg-userapi
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8070
+      ConnectionStrings__ConnectionString: "Server=db,1433;Initial Catalog=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True;"
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: "5672"
+      RabbitMQ__Username: guest
+      RabbitMQ__Password: guest
+      RabbitMQ__QueueName: user-created
+      CatalogApi__BaseUrl: "http://api:80"
+    ports:
+      - "8070:8070"
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  paymentsapi:
+    image: paymentsapi:latest
+    container_name: apipayments
+    build:
+      context: .
+      dockerfile: PaymentsAPI/Dockerfile
+    ports:
+      - "8090:8090"
+      - "8091:8091"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - RabbitMQ__Url=rabbitmq
+      - RabbitMQ__User=guest
+      - RabbitMQ__Password=guest
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  notifications-api:
+    build:
+      context: .
+      dockerfile: NotificationsAPI/Dockerfile
+    image: notificationapi:latest
+    container_name: notifications-api
+    ports:
+      - "5001:8080"
+    depends_on:
+      - rabbitmq
