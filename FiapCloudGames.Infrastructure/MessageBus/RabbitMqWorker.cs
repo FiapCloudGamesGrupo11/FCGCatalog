@@ -16,7 +16,7 @@ namespace FiapCloudGames.Infrastructure.MessageBus
         protected override async Task ExecuteAsync(
             CancellationToken stoppingToken)
         {
-            await _consumer.ConsumeAsync("payment-processed");
+            await _consumer.ConsumeAsync("catalog-payment-processed");
         }
     }
 }

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-api
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: catalog-api
+  
+  template:
+    metadata:
+      labels:
+        app: catalog-api
+  
+    spec:
+      containers:
+      - name: catalog-api
+        image: fiapcloudgames:latest
+        imagePullPolicy: Never
+
+        ports:
+        - containerPort: 8080
+
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+
+        # livenessProbe:
+        #   httpGet:
+        #     path: /
+        #     port: 8080
+        #   periodSeconds: 10
+        #   failureThreshold: 3
+        #   initialDelaySeconds: 20
+
+        # readinessProbe:
+        #   httpGet:
+        #     path: /
+        #     port: 8080
+        #   periodSeconds: 10
+        #   failureThreshold: 5
+        #   initialDelaySeconds: 3
+
+        env:
+        - name: ConnectionStrings__ConnectionString
+          value: "Server=db,1433;Initial Catalog=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True;"
+        - name: RabbitMq__Host
+          value: "rabbitmq"
+        - name: RabbitMq__User
+          value: "guest"
+        - name: RabbitMq__Password  
+          value: "guest"

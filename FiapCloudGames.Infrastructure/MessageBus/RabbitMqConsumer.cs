@@ -23,11 +23,23 @@ namespace FiapCloudGames.Infrastructure.MessageBus
         {
             var channel = await _connection.GetChannelAsync();
 
+            await channel.ExchangeDeclareAsync(
+                "payment.exchange",
+                ExchangeType.Fanout,
+                durable: true
+            );
+
             await channel.QueueDeclareAsync(
                 queue: queue,
                 durable: true,
                 exclusive: false,
                 autoDelete: false
+            );
+
+            await channel.QueueBindAsync(
+                queue: queue,
+                exchange: "payment.exchange",
+                routingKey: ""
             );
 
             var consumer = new AsyncEventingBasicConsumer(channel);
