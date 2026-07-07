@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: catalog-api
+  name: user-api
 
 spec:
   replicas: 1
 
   selector:
     matchLabels:
-      app: catalog-api
+      app: user-api
   
   template:
     metadata:
       labels:
-        app: catalog-api
+        app: user-api
   
     spec:
       containers:
-      - name: catalog-api
-        image: fiapcloudgames:latest
+      - name: user-api
+        image: userapi:latest
         imagePullPolicy: IfNotPresent
 
         ports:
-        - containerPort: 8080
+        - containerPort: 8070
 
         resources:
           requests:
@@ -52,12 +52,18 @@ spec:
         - name: ASPNETCORE_ENVIRONMENT
           value: Development
         - name: ASPNETCORE_URLS
-          value: http://+:8080
+          value: http://+:8070
         - name: ConnectionStrings__ConnectionString
           value: "Server=db,1433;Initial Catalog=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True;"
-        - name: RabbitMq__Host
+        - name: RabbitMQ__Host
           value: "rabbitmq"
-        - name: RabbitMq__User
+        - name: RabbitMQ__Port
+          value: "5672"
+        - name: RabbitMQ__Username
           value: "guest"
-        - name: RabbitMq__Password  
+        - name: RabbitMQ__Password  
           value: "guest"
+        - name: RabbitMQ__QueueName
+          value: "user-created"
+        - name: CatalogApi__BaseUrl
+          value: "catalog-api:8080"
