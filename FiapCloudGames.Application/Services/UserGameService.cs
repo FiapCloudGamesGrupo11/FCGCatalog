@@ -1,4 +1,5 @@
-﻿using FiapCloudGames.Application.Interfaces;
+﻿using FiapCloudGames.Application.DTOs.Game.Response;
+using FiapCloudGames.Application.Interfaces;
 using FiapCloudGames.Domain.Entity.MessageBus;
 using FiapCloudGames.Domain.Interfaces;
 using System.Text;
@@ -47,6 +48,13 @@ namespace FiapCloudGames.Application.Services
             await _publisher.PublishAsync(_queueName, message);
         }
 
-    
+        public async Task<List<GameCreatedResponse>> GetGamesByUserId(Guid userId)
+        {
+            var result = await _userGameRepository.GetGamesByUserId(userId);
+            
+            var resultMaped = GameCreatedResponse.FromGameList(result);
+
+            return resultMaped;
+        }
     }
 }

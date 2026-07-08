@@ -30,6 +30,17 @@ namespace FiapCloudGames.Infrastructure.Repository
             return userGame;
         }
 
+        public async Task<List<Game>> GetGamesByUserId(Guid userId)
+        {
+            var userGames = await _context.UsersGames
+                .Where(ug => ug.UserId == userId && ug.Status == Status.Active)
+                .Include(ug => ug.game)
+                .Select(ug => ug.game)
+                .ToListAsync();
+
+            return userGames;
+        }
+
         public async Task UpdateStatusByOrderId(string orderId, int status)
         {
             // orderId simples — busca direto por userId e gameId via PaymentResult

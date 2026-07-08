@@ -1,6 +1,4 @@
-﻿using FiapCloudGames.Domain.Entity;
-
-namespace FiapCloudGames.Domain.Entity
+﻿namespace FiapCloudGames.Domain.Entity
 {
     public class Game
     {

@@ -8,5 +8,6 @@ namespace FiapCloudGames.Domain.Interfaces
         Task UpdateStatusByOrderId(string orderId, int status);
         Task ActivateUserGame(Guid userId, Guid gameId);
         Task UpdateStatus(Guid userId, Guid gameId, int status);
+        Task<List<Game>> GetGamesByUserId(Guid userId);
     }
 }

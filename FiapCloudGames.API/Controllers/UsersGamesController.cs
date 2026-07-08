@@ -47,5 +47,23 @@ namespace FiapCloudGames.API.Controllers
             await _userGameService.AddGameToUser(request.UserId, request.GameId, request.ValuePay);
             return NoContent();
         }
+
+        [HttpGet]
+        [Route("[action]")]
+        [SwaggerOperation(Summary = "Get Games by User ID.")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetGamesByUserId([FromQuery] Guid userId)
+        {
+            if (userId == Guid.Empty)
+            {
+                _logger.LogWarning("Invalid UserId: {UserId}", userId);
+                return BadRequest("UserId must be a valid non-empty GUID.");
+            }
+
+            var games = await _userGameService.GetGamesByUserId(userId);
+            return Ok(games);
+        }
     }
 }
