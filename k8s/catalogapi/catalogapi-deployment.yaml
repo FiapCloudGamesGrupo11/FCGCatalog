@@ -21,6 +21,13 @@ spec:
         image: fiapcloudgames:latest
         imagePullPolicy: IfNotPresent
 
+        envFrom:
+          - configMapRef:
+              name: configmapcommon
+        
+          - secretRef:
+              name: secretfcg
+
         ports:
         - containerPort: 8080
 
@@ -47,17 +54,3 @@ spec:
         #   periodSeconds: 10
         #   failureThreshold: 5
         #   initialDelaySeconds: 3
-
-        env:
-        - name: ASPNETCORE_ENVIRONMENT
-          value: Development
-        - name: ASPNETCORE_URLS
-          value: http://+:8080
-        - name: ConnectionStrings__ConnectionString
-          value: "Server=db,1433;Initial Catalog=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True;"
-        - name: RabbitMq__Host
-          value: "rabbitmq"
-        - name: RabbitMq__User
-          value: "guest"
-        - name: RabbitMq__Password  
-          value: "guest"
