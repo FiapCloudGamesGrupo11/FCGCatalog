@@ -2,6 +2,8 @@
 using FiapCloudGames.Application.Interfaces;
 using FiapCloudGames.Domain.Entity.MessageBus;
 using FiapCloudGames.Domain.Interfaces;
+using FiapCloudGames.Infrastructure.MessageBus;
+using Microsoft.Extensions.Options;
 using System.Text;
 using System.Text.Json;
 
@@ -11,13 +13,13 @@ namespace FiapCloudGames.Application.Services
     {
         private readonly IUserGameRepository _userGameRepository;
         private readonly IMessagePublisher _publisher;
+        private readonly RabbitMqSettings _rabbitmqSettings;
 
-        private const string _queueName = "order-placed";
-
-        public UserGameService(IUserGameRepository userGameRepository, IMessagePublisher publisher)
+        public UserGameService(IUserGameRepository userGameRepository, IMessagePublisher publisher,  IOptions<RabbitMqSettings> options)
         {
             _userGameRepository = userGameRepository;
             _publisher = publisher;
+            _rabbitmqSettings = options.Value;
         }
 
         public async Task AddGameToUser(
@@ -45,7 +47,7 @@ namespace FiapCloudGames.Application.Services
 
             var message = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(orderPlacedEvent));
 
-            await _publisher.PublishAsync(_queueName, message);
+            await _publisher.PublishAsync(_rabbitmqSettings.OrderQueueName, message);
         }
 
         public async Task<List<GameCreatedResponse>> GetGamesByUserId(Guid userId)

@@ -39,18 +39,18 @@ spec:
             cpu: "250m"
             memory: "256Mi"
 
-        # livenessProbe:
-        #   httpGet:
-        #     path: /
-        #     port: 8080
-        #   periodSeconds: 10
-        #   failureThreshold: 3
-        #   initialDelaySeconds: 20
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          periodSeconds: 10
+          failureThreshold: 3
+          initialDelaySeconds: 20
 
-        # readinessProbe:
-        #   httpGet:
-        #     path: /
-        #     port: 8080
-        #   periodSeconds: 10
-        #   failureThreshold: 5
-        #   initialDelaySeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          periodSeconds: 10
+          failureThreshold: 5
+          initialDelaySeconds: 3

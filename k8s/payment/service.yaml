@@ -1,14 +1,13 @@
 apiVersion: v1
 kind: Service
-
 metadata:
-  name: db
+  name: payments-api
 
 spec:
   selector:
-    app: db
-
+    app: payments-api
+  
   ports:
-    - port: 1433
-      targetPort: 1433
+  - port: 8090
+    targetPort: 8090
   type: NodePort

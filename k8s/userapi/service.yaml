@@ -10,4 +10,6 @@ spec:
   ports:
   - port: 8070
     targetPort: 8070
+    nodePort: 8070
+
   type: NodePort
