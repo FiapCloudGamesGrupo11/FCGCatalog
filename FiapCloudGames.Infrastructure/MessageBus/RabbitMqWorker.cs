@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 
 namespace FiapCloudGames.Infrastructure.MessageBus
 {
@@ -8,10 +7,10 @@ namespace FiapCloudGames.Infrastructure.MessageBus
         private readonly IRabbitMqConsumer _consumer;
         private readonly RabbitMqSettings _rabbitmqSettings;
 
-        public RabbitMqWorker(IRabbitMqConsumer consumer, IOptions<RabbitMqSettings> options)
+        public RabbitMqWorker(IRabbitMqConsumer consumer, RabbitMqSettings options)
         {
             _consumer = consumer;
-            _rabbitmqSettings = options.Value;
+            _rabbitmqSettings = options;
         }
 
 

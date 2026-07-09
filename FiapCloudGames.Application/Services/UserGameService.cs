@@ -15,11 +15,11 @@ namespace FiapCloudGames.Application.Services
         private readonly IMessagePublisher _publisher;
         private readonly RabbitMqSettings _rabbitmqSettings;
 
-        public UserGameService(IUserGameRepository userGameRepository, IMessagePublisher publisher,  IOptions<RabbitMqSettings> options)
+        public UserGameService(IUserGameRepository userGameRepository, IMessagePublisher publisher,  RabbitMqSettings options)
         {
             _userGameRepository = userGameRepository;
             _publisher = publisher;
-            _rabbitmqSettings = options.Value;
+            _rabbitmqSettings = options;
         }
 
         public async Task AddGameToUser(

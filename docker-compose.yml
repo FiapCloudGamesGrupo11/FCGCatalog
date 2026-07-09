@@ -33,7 +33,7 @@ services:
       retries: 10
       start_period: 20s
 
-  catalogapi:
+  api:
     build:
       context: .
       dockerfile: Dockerfile
@@ -52,7 +52,7 @@ services:
       RabbitMq__User: "guest"
       RabbitMq__Password: "guest"
       RabbitMq__OrderQueueName: "order-placed"
-      RabbitMq__PaymentProcessQueueName: "payment-processed"
+      RabbitMq__PaymentProcessQueueName: "catalog-payment-processed"
 
   userapi:
     build:
@@ -69,7 +69,7 @@ services:
       RabbitMQ__Username: guest
       RabbitMQ__Password: guest
       RabbitMQ__QueueName: user-created
-      CatalogApi__BaseUrl: "http://catalogapi:80"
+      CatalogApi__BaseUrl: "http://api:80"
     ports:
       - "8070:8070"
     depends_on:
