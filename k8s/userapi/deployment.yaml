@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: user-api
-        image: userapi:latest
+        image: userapi2:latest
         imagePullPolicy: IfNotPresent
 
         ports:
@@ -66,4 +66,4 @@ spec:
         - name: RabbitMQ__QueueName
           value: "user-created"
         - name: CatalogApi__BaseUrl
-          value: "catalog-api:8080"
+          value: "http://catalog-api:8080"

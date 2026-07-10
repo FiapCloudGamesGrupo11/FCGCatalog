@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: catalog-api
-        image: fiapcloudgames:latest
+        image: catalogapi:latest
         imagePullPolicy: IfNotPresent
 
         envFrom:
@@ -54,3 +54,7 @@ spec:
           periodSeconds: 10
           failureThreshold: 5
           initialDelaySeconds: 3
+
+        env:
+        - name: ASPNETCORE_URLS
+          value: http://+:8080

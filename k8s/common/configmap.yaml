@@ -4,5 +4,6 @@ metadata:
   name: configmapcommon
 
 data:
-  ASPNETCORE_ENVIRONMENT: "Development"
   ASPNETCORE_URLS: "http://+:8080"
+  RabbitMQ__OrderQueueName: "order-placed"
+  RabbitMQ__PaymentProcessQueueName: "catalog-payment-processed"
