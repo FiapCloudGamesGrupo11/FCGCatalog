@@ -29,6 +29,8 @@ namespace FiapCloudGames.Infrastructure.MessageBus
                 exchange: "",
                 routingKey: queue,
                 body: message);
+
+            Console.WriteLine($"Mensagem publicada na fila '{queue}': {System.Text.Encoding.UTF8.GetString(message)}");
         }
     }
 }

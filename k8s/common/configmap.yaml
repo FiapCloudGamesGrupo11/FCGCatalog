@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: configmapcommon
-
-data:
-  ASPNETCORE_ENVIRONMENT: "Development"
-  RabbitMq__OrderQueueName: "order-placed"
-  RabbitMq__PaymentProcessQueueName: "catalog-payment-processed"
