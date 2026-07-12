@@ -10,6 +10,7 @@ namespace FiapCloudGames.Domain.Interfaces
         DbSet<Game> Games { get; }
         DbSet<UsersGames> UsersGames { get; }
         DbSet<OnSale> OnSales { get; set; }
+        DbSet<Order> Orders { get; set; }
 
     }
 }

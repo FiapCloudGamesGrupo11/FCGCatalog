@@ -13,7 +13,7 @@ namespace FiapCloudGames.Infrastructure.Persistence
         public DbSet<Game> Games { get; set; }
         public DbSet<UsersGames> UsersGames { get; set; }
         public DbSet<OnSale> OnSales { get; set; }
-
+        public DbSet<Order> Orders { get; set; }
 
         protected override void OnModelCreating (ModelBuilder modelBuilder)
         {

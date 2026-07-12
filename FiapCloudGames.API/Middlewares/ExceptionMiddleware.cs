@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using FiapCloudGames.Domain.Exceptions;
+using FluentValidation;
 using System.Net;
 using System.Text.Json;
 
@@ -24,6 +25,10 @@ public class ExceptionMiddleware
         catch (ValidationException ex)
         {
             await HandleValidationException(context, ex);
+        }
+        catch (OrderAlreadyExistsException ex)
+        {
+            await HandleAlreadyExistsException(context, ex);
         }
         catch (Exception ex)
         {
@@ -59,6 +64,27 @@ public class ExceptionMiddleware
         };
 
         context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+        context.Response.ContentType = "application/json";
+
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+    }
+
+    private async Task HandleAlreadyExistsException(HttpContext context, OrderAlreadyExistsException ex)
+    {
+        _logger.LogWarning(ex,
+        "Tentativa de compra duplicada. Path: {RequestPath} | Method: {Method}",
+        context.Request.Path,
+        context.Request.Method);
+
+        var response = new
+        {
+            title = "Compra já realizada",
+            status = (int)HttpStatusCode.Conflict,
+            detail = ex.Message,
+            traceId = context.TraceIdentifier
+        };
+
+        context.Response.StatusCode = (int)HttpStatusCode.Conflict;
         context.Response.ContentType = "application/json";
 
         await context.Response.WriteAsync(JsonSerializer.Serialize(response));

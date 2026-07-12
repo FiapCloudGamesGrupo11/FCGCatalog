@@ -26,6 +26,15 @@ namespace FiapCloudGames.Domain.Entity
             Status = Status.Pending;
         }   
 
+        public UsersGames(Guid userid, Guid jogoId, decimal valuePay, int status)
+        {
+            UserId = userid;
+            GameId = jogoId;
+            ValuePay = valuePay;
+            PurchaseDate = DateTime.UtcNow;
+            Status = (Status)status;
+        }   
+
         public void ActivateStatus()
         {
             Status = Status.Active;
