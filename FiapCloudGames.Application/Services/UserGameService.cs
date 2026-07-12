@@ -1,9 +1,9 @@
 ﻿using FiapCloudGames.Application.DTOs.Game.Response;
 using FiapCloudGames.Application.Interfaces;
+using FiapCloudGames.Domain.Entity;
 using FiapCloudGames.Domain.Entity.MessageBus;
 using FiapCloudGames.Domain.Interfaces;
 using FiapCloudGames.Infrastructure.MessageBus;
-using Microsoft.Extensions.Options;
 using System.Text;
 using System.Text.Json;
 
@@ -12,36 +12,29 @@ namespace FiapCloudGames.Application.Services
     public class UserGameService : IUserGameService
     {
         private readonly IUserGameRepository _userGameRepository;
+        private readonly IOrderRepository _orderRepository;
         private readonly IMessagePublisher _publisher;
         private readonly RabbitMqSettings _rabbitmqSettings;
 
-        public UserGameService(IUserGameRepository userGameRepository, IMessagePublisher publisher,  RabbitMqSettings options)
+        public UserGameService(IUserGameRepository userGameRepository, IOrderRepository orderRepository, IMessagePublisher publisher,  RabbitMqSettings options)
         {
             _userGameRepository = userGameRepository;
+            _orderRepository = orderRepository;
             _publisher = publisher;
             _rabbitmqSettings = options;
         }
 
-        public async Task AddGameToUser(
-        Guid userId,
-        Guid gameId,
-        decimal valuePay)
+        public async Task AddGameToUser(Guid userId, Guid gameId, decimal amount)
         {
-            var userGame = new Domain.Entity.UsersGames(
-                userId,
-                gameId,
-                valuePay);
-
-            await _userGameRepository.Create(userGame);
+            var newOrder = new Order(Guid.NewGuid(), userId, gameId, amount);
+            await _orderRepository.Create(newOrder);
 
             var paymentDetails = new PaymentDetails("Credit", "123456789", "123", "10/30");
-            var orderId = Guid.NewGuid();
-
             var orderPlacedEvent = new OrderPlacedEvent(
-                orderId,
+                newOrder.Id,
                 userId,
                 gameId,
-                valuePay,
+                amount,
                 DateTime.UtcNow,
                 paymentDetails);
 

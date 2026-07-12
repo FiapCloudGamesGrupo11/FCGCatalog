@@ -21,6 +21,7 @@ namespace FiapCloudGames.Infrastructure
             services.AddScoped<IGameRepository, GameRepository>();
             services.AddScoped<IAuthHelpers, AuthHelpers>();
             services.AddScoped<IOnSaleRepository, OnSaleRepository>();
+            services.AddScoped<IOrderRepository, OrderRepository>();
 
             services.AddSingleton<IRabbitMqConnection, RabbitMqConnection>();
             services.AddScoped<IMessagePublisher, RabbitMqPublisher>();

@@ -6,7 +6,7 @@ namespace FiapCloudGames.Domain.Entity.MessageBus
         Guid OrderId,
         Guid UserId,
         Guid GameId,
-        decimal Price,
+        decimal Amount,
         DateTime CreatedAt,
         PaymentDetails PaymentDetails
     );

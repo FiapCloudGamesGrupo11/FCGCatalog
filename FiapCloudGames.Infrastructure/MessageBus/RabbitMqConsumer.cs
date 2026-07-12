@@ -12,7 +12,7 @@ namespace FiapCloudGames.Infrastructure.MessageBus
     {
         private readonly IRabbitMqConnection _connection;
         private readonly IServiceScopeFactory _scopeFactory;
-
+        
         public RabbitMqConsumer(IRabbitMqConnection connection, IServiceScopeFactory scopeFactory)
         {
             _connection = connection;
@@ -60,20 +60,21 @@ namespace FiapCloudGames.Infrastructure.MessageBus
                         return;
                     }
 
-                    using var scope = _scopeFactory.CreateScope();
+                    using var scopeUG = _scopeFactory.CreateScope();
+                    using var scopeOrder = _scopeFactory.CreateScope();
 
                     Console.WriteLine($"Mensagem recebida: {message}");
 
-                    var userGameRepository = scope.ServiceProvider.GetRequiredService<IUserGameRepository>();
+                    var userGameRepository = scopeUG.ServiceProvider.GetRequiredService<IUserGameRepository>();
+                    var orderRepository = scopeOrder.ServiceProvider.GetRequiredService<IOrderRepository>();
 
                     bool isApproved = result.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase);
                     int newStatus = isApproved ? 1 : 2;
 
-                    await userGameRepository.UpdateStatus(result.UserId, result.GameId, newStatus);
+                    await orderRepository.UpdateStatus(result.UserId, result.GameId, newStatus);
+                    await userGameRepository.Create(new UsersGames(result.UserId, result.GameId, result.Amount, 1));
 
-                    if (isApproved)
-                        await userGameRepository.ActivateUserGame(result.UserId, result.GameId);
-
+                    
                     await channel.BasicAckAsync(deliveryTag: args.DeliveryTag, multiple: false);
                 }
                 catch (Exception ex)
