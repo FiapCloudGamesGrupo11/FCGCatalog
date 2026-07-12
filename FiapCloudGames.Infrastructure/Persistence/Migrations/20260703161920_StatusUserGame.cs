@@ -46,6 +46,8 @@ namespace FiapCloudGames.Infrastructure.Persistence.Migrations
                 oldClrType: typeof(string),
                 oldType: "nvarchar(256)",
                 oldMaxLength: 256);
+
+            migrationBuilder.Sql("UPDATE UsersGames SET Status = 1;");
         }
 
         /// <inheritdoc />
