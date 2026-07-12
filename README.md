@@ -732,5 +732,17 @@ dotnet ef database update PreviousMigrationName --project FiapCloudGames.Infrast
 
 ---
 
+## Logins iniciais
+
+User Admin
+email: andre@email.com
+senha: Admin@!23
+
+User Common
+email: carlos@email.com
+senha: Pass@!23
+
+---
+
 **Última atualização**: 2026-07-12  
 **Versão**: 1.0.0
