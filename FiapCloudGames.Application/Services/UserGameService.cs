@@ -1,4 +1,5 @@
 ﻿using FiapCloudGames.Application.DTOs.Game.Response;
+using FiapCloudGames.Application.DTOs.UserGame;
 using FiapCloudGames.Application.Interfaces;
 using FiapCloudGames.Domain.Entity;
 using FiapCloudGames.Domain.Entity.MessageBus;
@@ -24,17 +25,17 @@ namespace FiapCloudGames.Application.Services
             _rabbitmqSettings = options;
         }
 
-        public async Task AddGameToUser(Guid userId, Guid gameId, decimal amount)
+        public async Task AddGameToUser(PurchaseGameRequest request)
         {
-            var newOrder = new Order(Guid.NewGuid(), userId, gameId, amount);
+            var newOrder = new Order(Guid.NewGuid(), request.UserId, request.GameId, request.ValuePay);
             await _orderRepository.Create(newOrder);
 
-            var paymentDetails = new PaymentDetails("Credit", "123456789", "123", "10/30");
+            var paymentDetails = new PaymentDetails(request.PaymentMethod, request.CardNumber, request.Cvv, request.ExpirationDate);
             var orderPlacedEvent = new OrderPlacedEvent(
                 newOrder.Id,
-                userId,
-                gameId,
-                amount,
+                request.UserId,
+                request.GameId,
+                request.ValuePay,
                 DateTime.UtcNow,
                 paymentDetails);
 

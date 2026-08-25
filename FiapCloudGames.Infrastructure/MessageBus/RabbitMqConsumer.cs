@@ -72,7 +72,9 @@ namespace FiapCloudGames.Infrastructure.MessageBus
                     int newStatus = isApproved ? 1 : 2;
 
                     await orderRepository.UpdateStatus(result.UserId, result.GameId, newStatus);
-                    await userGameRepository.Create(new UsersGames(result.UserId, result.GameId, result.Amount, 1));
+
+                    if(newStatus == 1) // Se aprovado, cria o registro de UserGame
+                        await userGameRepository.Create(new UsersGames(result.UserId, result.GameId, result.Amount, 1));
 
                     
                     await channel.BasicAckAsync(deliveryTag: args.DeliveryTag, multiple: false);

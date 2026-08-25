@@ -44,7 +44,7 @@ namespace FiapCloudGames.API.Controllers
                 return BadRequest("ValuePay must be non-negative.");
             }
 
-            await _userGameService.AddGameToUser(request.UserId, request.GameId, request.ValuePay);
+            await _userGameService.AddGameToUser(request);
             return NoContent();
         }
 
