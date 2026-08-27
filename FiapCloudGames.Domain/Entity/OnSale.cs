@@ -1,4 +1,5 @@
 using FiapCloudGames.Domain.Enums;
+using MongoDB.Bson.Serialization.Attributes;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FiapCloudGames.Domain.Entity
@@ -11,9 +12,11 @@ namespace FiapCloudGames.Domain.Entity
         public decimal DiscountPercentage { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public Game Game { get; set; }
+        [BsonIgnore]
+        public Game? Game { get; set; }
 
         [NotMapped]
+        [BsonIgnore]
         public DateTime DataAtual { get; private set; } = DateTime.Now;
 
         public Status Status { get; set; }

@@ -2,6 +2,7 @@
 using FiapCloudGames.Infrastructure.Authorization;
 using FiapCloudGames.Infrastructure.MessageBus;
 using FiapCloudGames.Infrastructure.Persistence;
+using FiapCloudGames.Infrastructure.Persistence.Mongo;
 using FiapCloudGames.Infrastructure.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -20,8 +21,9 @@ namespace FiapCloudGames.Infrastructure
             services.AddScoped<IUserGameRepository, UserGameRepository>();
             services.AddScoped<IGameRepository, GameRepository>();
             services.AddScoped<IAuthHelpers, AuthHelpers>();
-            services.AddScoped<IOnSaleRepository, OnSaleRepository>();
+            services.AddScoped<IOnSaleRepository, MongoOnSaleRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
+            services.AddScoped<IMongoGameRepository, MongoGameRepository>();
 
             services.AddSingleton<IRabbitMqConnection, RabbitMqConnection>();
             services.AddScoped<IMessagePublisher, RabbitMqPublisher>();
@@ -43,6 +45,11 @@ namespace FiapCloudGames.Infrastructure
                 .Get<RabbitMqSettings>();
 
             services.AddSingleton(rabbitSettings);
+
+            services.Configure<MongoSettings>(
+                configuration.GetSection("MongoSettings"));
+
+            services.AddSingleton<MongoContext>();
 
             return services;
         }
