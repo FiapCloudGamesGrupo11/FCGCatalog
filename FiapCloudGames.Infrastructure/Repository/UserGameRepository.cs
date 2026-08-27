@@ -9,14 +9,21 @@ namespace FiapCloudGames.Infrastructure.Repository
     public class UserGameRepository : IUserGameRepository
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMongoGameRepository _mongoGameRepository;
 
-        public UserGameRepository(ApplicationDbContext context)
+        public UserGameRepository(ApplicationDbContext context, IMongoGameRepository mongoGameRepository)
         {
             _context = context;
+            _mongoGameRepository = mongoGameRepository;
         }
 
         public async Task<UsersGames> Create(UsersGames userGame)
         {
+            // Sem FK entre UsersGames e Game: jogo vive no MongoDB, então valida existência lá antes de inserir
+            var game = await _mongoGameRepository.GetByIdAsync(userGame.GameId);
+            if (game is null)
+                throw new Exception($"Jogo não encontrado: gameId={userGame.GameId}");
+
             try
             {
                 await _context.UsersGames.AddAsync(userGame);
@@ -32,10 +39,13 @@ namespace FiapCloudGames.Infrastructure.Repository
 
         public async Task<List<Game>> GetGamesByUserId(Guid userId)
         {
-            var userGames = await _context.UsersGames
+            var gameIds = await _context.UsersGames
                 .Where(ug => ug.UserId == userId && ug.Status == Status.Active)
-                .Include(ug => ug.game)
-                .Select(ug => ug.game)
+                .Select(ug => ug.GameId)
+                .ToListAsync();
+
+            var userGames = await _context.Games
+                .Where(g => gameIds.Contains(g.Id))
                 .ToListAsync();
 
             return userGames;

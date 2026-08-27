@@ -23,7 +23,6 @@ namespace FiapCloudGames.API.Controllers
         [HttpPost]
         [Route("[action]")]
         [Authorize(Roles = "Admin")]
-        [AllowAnonymous]
         [SwaggerOperation(Summary = "Create a new game.")]
         public async Task<IActionResult> CreateGame ([FromBody] GameRequest newGame)
         {

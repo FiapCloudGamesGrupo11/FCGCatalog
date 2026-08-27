@@ -15,7 +15,6 @@ namespace FiapCloudGames.Domain.Entity
         [BsonElement("price")]
         public decimal Price { get; set; }
 
-        public IList<UsersGames> UsersGames { get; set; }
         public ICollection<OnSale> OnSales { get; set; } = new List<OnSale>();
 
         public Game () { }
