@@ -10,20 +10,12 @@ namespace FiapCloudGames.Infrastructure.Persistence
         public ApplicationDbContext(DbContextOptions options) : base(options) { }
 
         public DbSet<User> Users { get; set; }
-        public DbSet<Game> Games { get; set; }
         public DbSet<UsersGames> UsersGames { get; set; }
-        public DbSet<OnSale> OnSales { get; set; }
         public DbSet<Order> Orders { get; set; }
 
         protected override void OnModelCreating (ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-
-            modelBuilder.Entity<Game>()
-               .Property(g => g.Price)
-               .HasPrecision(18, 2);
-
-            
         }
     }
 }

@@ -19,7 +19,6 @@ namespace FiapCloudGames.Infrastructure
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
             services.AddScoped<IUserGameRepository, UserGameRepository>();
-            services.AddScoped<IGameRepository, GameRepository>();
             services.AddScoped<IAuthHelpers, AuthHelpers>();
             services.AddScoped<IOnSaleRepository, MongoOnSaleRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();

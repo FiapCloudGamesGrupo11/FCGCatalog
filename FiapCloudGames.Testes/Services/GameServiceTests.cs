@@ -9,19 +9,41 @@ namespace FiapCloudGames.Testes.Services;
 
 public class GameServiceTests
 {
-    private readonly Mock<IGameRepository> _gameRepositoryMock;
+    private readonly Mock<IMongoGameRepository> _mongoGameRepositoryMock;
+    private readonly Mock<IOnSaleRepository> _onSaleRepositoryMock;
     private readonly Mock<IValidationBehavior<GameRequest>> _validationBehavior;
     private readonly GameService _gameService;
 
     public GameServiceTests()
     {
-        _gameRepositoryMock = new Mock<IGameRepository>();
+        _mongoGameRepositoryMock = new Mock<IMongoGameRepository>();
+        _onSaleRepositoryMock = new Mock<IOnSaleRepository>();
         _validationBehavior = new Mock<IValidationBehavior<GameRequest>>();
+
+        _onSaleRepositoryMock.Setup(r => r.GetAllAsync())
+                             .ReturnsAsync(new List<OnSale>());
 
         _gameService = new GameService(
             _validationBehavior.Object,
-            _gameRepositoryMock.Object
+            _mongoGameRepositoryMock.Object,
+            _onSaleRepositoryMock.Object
         );
+    }
+
+    private static GameFullData CreateGame(string name, decimal price, string description, string category)
+    {
+        return GameFullData.TransferData(
+            name,
+            description,
+            category,
+            "Developer",
+            "Publisher",
+            new List<string>(),
+            new List<string>(),
+            price,
+            DateTime.Now,
+            "E",
+            new List<string>());
     }
 
     [Fact]
@@ -36,12 +58,8 @@ public class GameServiceTests
             Category = "Platform"
         };
 
-        // ValidateAsync passará direto pois usamos uma lista vazia de validadores
-
-        var expectedGame = new Game("Super Mario", 299.99m, "Classic game", "Platform");
-
-        _gameRepositoryMock.Setup(r => r.AddAsync(It.IsAny<Game>()))
-                           .ReturnsAsync(expectedGame);
+        _mongoGameRepositoryMock.Setup(r => r.AddAsync(It.IsAny<GameFullData>()))
+                                .Returns(Task.CompletedTask);
 
         // Act
         var result = await _gameService.CreateGame(request);
@@ -58,13 +76,13 @@ public class GameServiceTests
     public async Task GetAllAsync_ShouldReturnListOfGames_WhenGamesExist()
     {
         // Arrange
-        var games = new List<Game>
+        var games = new List<GameFullData>
         {
-            new Game("Game 1", 100m, "Desc 1", "Action"),
-            new Game("Game 2", 200m, "Desc 2", "RPG")
+            CreateGame("Game 1", 100m, "Desc 1", "Action"),
+            CreateGame("Game 2", 200m, "Desc 2", "RPG")
         };
 
-        _gameRepositoryMock.Setup(r => r.GetAllAsync())
+        _mongoGameRepositoryMock.Setup(r => r.GetAllAsync())
                            .ReturnsAsync(games);
 
         // Act
@@ -81,14 +99,13 @@ public class GameServiceTests
     public async Task GetGameById_ShouldReturnGame_WhenGameExists()
     {
         // Arrange
-        var gameId = Guid.NewGuid();
-        var expectedGame = new Game("Game XYZ", 150m, "Desc XYZ", "Strategy");
+        var expectedGame = CreateGame("Game XYZ", 150m, "Desc XYZ", "Strategy");
 
-        _gameRepositoryMock.Setup(r => r.GetGameByID(gameId))
+        _mongoGameRepositoryMock.Setup(r => r.GetByIdAsync(expectedGame.Id))
                            .ReturnsAsync(expectedGame);
 
         // Act
-        var result = await _gameService.GetGameById(gameId);
+        var result = await _gameService.GetGameById(expectedGame.Id);
 
         // Assert
         Assert.NotNull(result);
@@ -97,3 +114,4 @@ public class GameServiceTests
         Assert.Equal("Strategy", result.Category);
     }
 }
+

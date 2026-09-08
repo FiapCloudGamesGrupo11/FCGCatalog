@@ -47,7 +47,7 @@ namespace FiapCloudGames.Application.Services
         {
             var result = await _userGameRepository.GetGamesByUserId(userId);
             
-            var resultMaped = GameCreatedResponse.FromGameList(result);
+            var resultMaped = GameCreatedResponse.FromGameFullDataList(result);
 
             return resultMaped;
         }

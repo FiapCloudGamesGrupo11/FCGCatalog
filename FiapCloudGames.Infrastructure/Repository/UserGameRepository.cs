@@ -37,16 +37,21 @@ namespace FiapCloudGames.Infrastructure.Repository
             return userGame;
         }
 
-        public async Task<List<Game>> GetGamesByUserId(Guid userId)
+        public async Task<List<GameFullData>> GetGamesByUserId(Guid userId)
         {
             var gameIds = await _context.UsersGames
                 .Where(ug => ug.UserId == userId && ug.Status == Status.Active)
                 .Select(ug => ug.GameId)
                 .ToListAsync();
 
-            var userGames = await _context.Games
-                .Where(g => gameIds.Contains(g.Id))
-                .ToListAsync();
+            // Jogos vivem no MongoDB, então busca os dados completos lá
+            var userGames = new List<GameFullData>();
+            foreach (var gameId in gameIds)
+            {
+                var game = await _mongoGameRepository.GetByIdAsync(gameId);
+                if (game is not null)
+                    userGames.Add(game);
+            }
 
             return userGames;
         }
