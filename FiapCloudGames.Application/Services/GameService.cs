@@ -5,36 +5,23 @@ using FiapCloudGames.Application.Results;
 using FiapCloudGames.Domain.Entity;
 using FiapCloudGames.Domain.Enums;
 using FiapCloudGames.Domain.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace FiapCloudGames.Application.Services
 {
     public class GameService : IGameService
     {
         private readonly IValidationBehavior<GameRequest> _validation;
-        private readonly IGameRepository _gameRepository;
-        private readonly IMongoGameRepository? _mongoGameRepository;
-        private readonly IOnSaleRepository? _onSaleRepository;
+        private readonly IMongoGameRepository _mongoGameRepository;
+        private readonly IOnSaleRepository _onSaleRepository;
 
-        [ActivatorUtilitiesConstructor]
         public GameService(
             IValidationBehavior<GameRequest> validation,
-            IGameRepository gameRepository,
             IMongoGameRepository mongoGameRepository,
             IOnSaleRepository onSaleRepository)
         {
             _validation = validation;
-            _gameRepository = gameRepository;
             _mongoGameRepository = mongoGameRepository;
             _onSaleRepository = onSaleRepository;
-        }
-
-        public GameService(
-            IValidationBehavior<GameRequest> validation,
-            IGameRepository gameRepository)
-        {
-            _validation = validation;
-            _gameRepository = gameRepository;
         }
 
         public async Task<GameCreatedResponse> CreateGame (GameRequest request)
@@ -53,19 +40,8 @@ namespace FiapCloudGames.Application.Services
                 request.ReleaseDate,
                 request.Rating,
                 request.Tags);
-            // var response = await _gameRepository.AddAsync(Game);
-            if (_mongoGameRepository is not null)
-            {
-                await _mongoGameRepository.AddAsync(game);
-            }
-            else
-            {
-                await _gameRepository.AddAsync(new Game(
-                    game.Name,
-                    game.Price,
-                    game.Description,
-                    game.Category));
-            }
+
+            await _mongoGameRepository.AddAsync(game);
 
             var CreateGame = new GameCreatedResponse(game.Id, game.Name, game.Price, game.Description, game.Category);
 
@@ -73,13 +49,6 @@ namespace FiapCloudGames.Application.Services
         }
         public async Task<IEnumerable<GameCreatedResponse>> GetAllAsync ()
         {
-
-            if (_mongoGameRepository is null)
-            {
-                var legacyGames = await _gameRepository.GetAllAsync();
-                return GameCreatedResponse.FromGameList(legacyGames.ToList());
-            }
-
             var games = await _mongoGameRepository.GetAllAsync();
             var gameList = games.ToList();
             var sales = await _onSaleRepository.GetAllAsync();
@@ -96,19 +65,6 @@ namespace FiapCloudGames.Application.Services
 
         public async Task<GameResponseFull> GetGameById (Guid id)
         {
-            if (_mongoGameRepository is null)
-            {
-                var legacyGame = await _gameRepository.GetGameByID(id);
-                return Result<GameResponseFull>.Success(new GameResponseFull
-                {
-                    Id = legacyGame.Id,
-                    Name = legacyGame.Name,
-                    Description = legacyGame.Description,
-                    Category = legacyGame.Category,
-                    Price = legacyGame.Price
-                }).Value;
-            }
-
             var response = await _mongoGameRepository.GetByIdAsync(id);
 
             if (response is null)
@@ -139,22 +95,6 @@ namespace FiapCloudGames.Application.Services
 
         public async Task<GameCreatedResponse> UpdateGame(Guid id, GameRequest request)
         {
-            if (_mongoGameRepository is null)
-            {
-                var legacyGame = await _gameRepository.GetGameByID(id);
-                legacyGame.Name = request.Name;
-                legacyGame.Price = request.Price;
-                legacyGame.Description = request.Description;
-                legacyGame.Category = request.Category;
-                var legacyResult = await _gameRepository.UpdateGameAsync(legacyGame);
-                return Result<GameCreatedResponse>.Success(new GameCreatedResponse(
-                    legacyResult.Id,
-                    legacyResult.Name,
-                    legacyResult.Price,
-                    legacyResult.Description,
-                    legacyResult.Category)).Value;
-            }
-
             var existingGame = await _mongoGameRepository.GetByIdAsync(id);
 
             if (existingGame is null)

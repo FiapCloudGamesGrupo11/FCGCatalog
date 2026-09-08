@@ -46,32 +46,11 @@ namespace FiapCloudGames.Infrastructure.Repository
 
             // Jogos vivem no MongoDB, então busca os dados completos lá
             var userGames = new List<GameFullData>();
-            var remainingIds = new List<Guid>(gameIds);
             foreach (var gameId in gameIds)
             {
                 var game = await _mongoGameRepository.GetByIdAsync(gameId);
                 if (game is not null)
-                {
                     userGames.Add(game);
-                    remainingIds.Remove(gameId);
-                }
-            }
-
-            // Incremento: jogos legados que ainda vivem no SQL (não encontrados no MongoDB)
-            if (remainingIds.Count > 0)
-            {
-                var legacyGames = await _context.Games
-                    .Where(g => remainingIds.Contains(g.Id))
-                    .ToListAsync();
-
-                userGames.AddRange(legacyGames.Select(g => new GameFullData
-                {
-                    Id = g.Id,
-                    Name = g.Name,
-                    Description = g.Description,
-                    Category = g.Category,
-                    Price = g.Price
-                }));
             }
 
             return userGames;

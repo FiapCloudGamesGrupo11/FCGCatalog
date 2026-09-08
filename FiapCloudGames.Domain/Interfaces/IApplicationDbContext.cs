@@ -7,9 +7,7 @@ namespace FiapCloudGames.Domain.Interfaces
     {
         Task<int> SaveChangesAsync (CancellationToken cancellationToken = default);
         DbSet<User> Users { get; }
-        DbSet<Game> Games { get; }
         DbSet<UsersGames> UsersGames { get; }
-        DbSet<OnSale> OnSales { get; set; }
         DbSet<Order> Orders { get; set; }
 
     }
