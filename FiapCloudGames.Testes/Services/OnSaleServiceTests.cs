@@ -71,7 +71,7 @@ public class OnSaleServiceTests
     }
 
     [Fact]
-    public async Task GetAllAsync_ShouldApplyDiscount_WhenSaleStatusIsActive()
+    public async Task GetAllAsync_ShouldExcludeSale_WhenPromotionDateHasExpired()
     {
         // Arrange
         var game = CreateGame(Guid.NewGuid(), "Super Game", 100m);
@@ -98,7 +98,7 @@ public class OnSaleServiceTests
         var result = await _onSaleService.GetAllAsync();
 
         // Assert
-        Assert.Equal(80m, result.Single().DiscountedPrice);
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -113,6 +113,8 @@ public class OnSaleServiceTests
                 Id = Guid.NewGuid(),
                 GameId = game.Id,
                 DiscountPercentage = 20,
+                StartDate = DateTime.Now.AddDays(-1),
+                EndDate = DateTime.Now.AddDays(1),
                 Status = Domain.Enums.Status.Desactivated
             }
         };

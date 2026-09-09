@@ -22,9 +22,12 @@ namespace FiapCloudGames.Application.Services
         {
             var sales = await _repository.GetAllAsync();
             var games = (await _repositoryGame.GetAllAsync()).ToDictionary(game => game.Id);
+            var now = DateTime.Now;
 
             return sales
-                .Where(sale => games.ContainsKey(sale.GameId))
+                .Where(sale => sale.StartDate <= now &&
+                              sale.EndDate >= now &&
+                              games.ContainsKey(sale.GameId))
                 .Select(sale =>
                 {
                     var game = games[sale.GameId];
