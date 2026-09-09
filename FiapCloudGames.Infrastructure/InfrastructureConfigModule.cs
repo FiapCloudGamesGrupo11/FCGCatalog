@@ -16,6 +16,7 @@ namespace FiapCloudGames.Infrastructure
         {
             services.AddPersistence(configuration);
             services.AddMigrations();
+            services.AddMongoSeed();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
             services.AddScoped<IUserGameRepository, UserGameRepository>();
@@ -61,6 +62,18 @@ namespace FiapCloudGames.Infrastructure
             {
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 db.Database.Migrate();
+            }
+            return services;
+        }
+
+        private static IServiceCollection AddMongoSeed(this IServiceCollection services)
+        {
+            var provider = services.BuildServiceProvider();
+
+            using (var scope = provider.CreateScope())
+            {
+                var mongoContext = scope.ServiceProvider.GetRequiredService<MongoContext>();
+                MongoSeeder.SeedAsync(mongoContext).GetAwaiter().GetResult();
             }
             return services;
         }

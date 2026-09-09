@@ -25,7 +25,18 @@ namespace FiapCloudGames.Application.Services
 
             return sales
                 .Where(sale => games.ContainsKey(sale.GameId))
-                .Select(sale => CreateResponse(sale, games[sale.GameId]));
+                .Select(sale =>
+                {
+                    var game = games[sale.GameId];
+                    return new OnSaleResponse
+                    {
+                        Id = sale.Id,
+                        GameName = game.Name,
+                        OriginalPrice = game.Price,
+                        DiscountPercentage = sale.DiscountPercentage,
+                        DiscountedPrice = GetDiscountedPrice(game.Price, sale)
+                    };
+                });
         }
 
         public async Task<OnSaleResponse?> GetByIdAsync (Guid id)
@@ -34,7 +45,16 @@ namespace FiapCloudGames.Application.Services
             if (sale == null) return null;
 
             var game = await _repositoryGame.GetByIdAsync(sale.GameId);
-            return game is null ? null : CreateResponse(sale, game);
+            if (game is null) return null;
+
+            return new OnSaleResponse
+            {
+                Id = sale.Id,
+                GameName = game.Name,
+                OriginalPrice = game.Price,
+                DiscountPercentage = sale.DiscountPercentage,
+                DiscountedPrice = GetDiscountedPrice(game.Price, sale)
+            };
         }
 
         public async Task<OnSaleResponse> CreateAsync (OnSaleRequest request)
