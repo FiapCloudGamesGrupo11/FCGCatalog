@@ -2,18 +2,17 @@ using FiapCloudGames.Domain.Entity;
 using FiapCloudGames.Domain.Enums;
 using MongoDB.Driver;
 
-namespace FiapCloudGames.Infrastructure.Persistence.Mongo
+namespace FiapCloudGames.Infrastructure.Persistence.Mongo.Migrations
 {
     // Popula as coleções Games e OnSales com os mesmos dados de exemplo usados nas antigas migrations SQL
-    public static class MongoSeeder
+    public class PopulateGamesAndOnSalesMigration : IMongoMigration
     {
-        public static async Task SeedAsync(MongoContext context)
-        {
-            var games = context.Database.GetCollection<GameFullData>("Games");
-            var sales = context.Database.GetCollection<OnSale>("OnSales");
+        public string Id => "20260427230238_PopulateGamesAndOnSales";
 
-            if (await games.Find(_ => true).AnyAsync())
-                return;
+        public async Task UpAsync(IMongoDatabase database)
+        {
+            var games = database.GetCollection<GameFullData>("Games");
+            var sales = database.GetCollection<OnSale>("OnSales");
 
             var zeldaId = Guid.Parse("11111111-1111-1111-1111-111111111111");
             var godOfWarId = Guid.Parse("22222222-2222-2222-2222-222222222222");

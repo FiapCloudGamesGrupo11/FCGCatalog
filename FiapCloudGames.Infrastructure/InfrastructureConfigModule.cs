@@ -3,10 +3,12 @@ using FiapCloudGames.Infrastructure.Authorization;
 using FiapCloudGames.Infrastructure.MessageBus;
 using FiapCloudGames.Infrastructure.Persistence;
 using FiapCloudGames.Infrastructure.Persistence.Mongo;
+using FiapCloudGames.Infrastructure.Persistence.Mongo.Migrations;
 using FiapCloudGames.Infrastructure.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace FiapCloudGames.Infrastructure
 {
@@ -15,8 +17,6 @@ namespace FiapCloudGames.Infrastructure
         public static IServiceCollection AddConfigInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddPersistence(configuration);
-            services.AddMigrations();
-            services.AddMongoSeed();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
             services.AddScoped<IUserGameRepository, UserGameRepository>();
@@ -24,6 +24,9 @@ namespace FiapCloudGames.Infrastructure
             services.AddScoped<IOnSaleRepository, MongoOnSaleRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
             services.AddScoped<IMongoGameRepository, MongoGameRepository>();
+
+            services.AddScoped<IMongoMigration, PopulateGamesAndOnSalesMigration>();
+            services.AddScoped<MongoMigrationRunner>();
 
             services.AddSingleton<IRabbitMqConnection, RabbitMqConnection>();
             services.AddScoped<IMessagePublisher, RabbitMqPublisher>();
@@ -54,28 +57,21 @@ namespace FiapCloudGames.Infrastructure
             return services;
         }
 
-        private static IServiceCollection AddMigrations(this IServiceCollection services)
+        // Deve ser chamado após o host ser construído (builder.Build()), nunca durante o registro de serviços,
+        // para evitar criar um IServiceProvider "fantasma" separado do container real da aplicação.
+        public static async Task MigrateAndSeedInfrastructureAsync(this IServiceProvider services)
         {
-            var provider = services.BuildServiceProvider();
+            using var scope = services.CreateScope();
+            var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("InfrastructureConfigModule");
 
-            using (var scope = provider.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                db.Database.Migrate();
-            }
-            return services;
-        }
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.Database.MigrateAsync();
+            logger.LogInformation("SQL Server migrations applied successfully.");
 
-        private static IServiceCollection AddMongoSeed(this IServiceCollection services)
-        {
-            var provider = services.BuildServiceProvider();
-
-            using (var scope = provider.CreateScope())
-            {
-                var mongoContext = scope.ServiceProvider.GetRequiredService<MongoContext>();
-                MongoSeeder.SeedAsync(mongoContext).GetAwaiter().GetResult();
-            }
-            return services;
+            var mongoMigrationRunner = scope.ServiceProvider.GetRequiredService<MongoMigrationRunner>();
+            await mongoMigrationRunner.MigrateAsync();
+            logger.LogInformation("MongoDB migrations applied successfully.");
         }
     }
 }

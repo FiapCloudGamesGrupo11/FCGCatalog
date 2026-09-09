@@ -112,6 +112,9 @@ builder.Host.UseSerilog();
 
 var app = builder.Build();
 
+// Aplica migrations do SQL Server e o seed do MongoDB usando o container de DI real da aplicação
+await app.Services.MigrateAndSeedInfrastructureAsync();
+
 app.MapHealthChecks("/health");
 
 // Middleware de Exce��o - DEVE SER SEMPRE O PRIMEIRO
