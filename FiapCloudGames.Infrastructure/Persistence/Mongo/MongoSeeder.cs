@@ -109,7 +109,7 @@ namespace FiapCloudGames.Infrastructure.Persistence.Mongo
                     Id = Guid.NewGuid(),
                     GameId = zeldaId,
                     DiscountPercentage = 15m,
-                    StartDate = DateTime.Now,
+                    StartDate = DateTime.Now.AddDays(-1),
                     EndDate = DateTime.Now.AddDays(7),
                     Status = Status.Active
                 },
@@ -118,7 +118,7 @@ namespace FiapCloudGames.Infrastructure.Persistence.Mongo
                     Id = Guid.NewGuid(),
                     GameId = godOfWarId,
                     DiscountPercentage = 20m,
-                    StartDate = DateTime.Now,
+                    StartDate = DateTime.Now.AddDays(-1),
                     EndDate = DateTime.Now.AddDays(10),
                     Status = Status.Active
                 },
@@ -127,26 +127,8 @@ namespace FiapCloudGames.Infrastructure.Persistence.Mongo
                     Id = Guid.NewGuid(),
                     GameId = reddeadId,
                     DiscountPercentage = 25m,
-                    StartDate = DateTime.Now,
+                    StartDate = DateTime.Now.AddDays(-1),
                     EndDate = DateTime.Now.AddDays(14),
-                    Status = Status.Active
-                },
-                new OnSale
-                {
-                    Id = Guid.NewGuid(),
-                    GameId = witcherId,
-                    DiscountPercentage = 30m,
-                    StartDate = DateTime.Now,
-                    EndDate = DateTime.Now.AddDays(20),
-                    Status = Status.Active
-                },
-                new OnSale
-                {
-                    Id = Guid.NewGuid(),
-                    GameId = minecraftId,
-                    DiscountPercentage = 10m,
-                    StartDate = DateTime.Now,
-                    EndDate = DateTime.Now.AddDays(5),
                     Status = Status.Active
                 }
             };

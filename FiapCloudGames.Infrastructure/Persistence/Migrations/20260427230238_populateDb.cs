@@ -30,12 +30,8 @@ namespace FiapCloudGames.Infrastructure.Persistence.Migrations
                 INSERT INTO UsersGames (UserId, GameId, PurchaseDate, ValuePay) VALUES
 
 
-                ('11111111-1111-1111-1111-111111111111', (SELECT Id FROM Game WHERE Name = 'Minecraft'), GETUTCDATE(), 26.95),
-                ('11111111-1111-1111-1111-111111111111', (SELECT Id FROM Game WHERE Name = 'God of War'), GETUTCDATE(), 49.99),
-                ('11111111-1111-1111-1111-111111111111', (SELECT Id FROM Game WHERE Name = 'Red Dead Redemption 2'), GETUTCDATE(), 39.99),
-
-                ('22222222-2222-2222-2222-222222222222', (SELECT Id FROM Game WHERE Name = 'The Witcher 3: Wild Hunt'), GETUTCDATE(), 29.99),
-                ('22222222-2222-2222-2222-222222222222', (SELECT Id FROM Game WHERE Name = 'Minecraft'), GETUTCDATE(), 26.95);
+                ('11111111-1111-1111-1111-111111111111', (SELECT Id FROM Game WHERE Name = 'God of War'), GETUTCDATE(), 26.95),
+                ('22222222-2222-2222-2222-222222222222', (SELECT Id FROM Game WHERE Name = 'The Legend of Zelda: Breath of the Wild'), GETUTCDATE(), 49.99)
                 ";
 
             migrationBuilder.Sql(sqlUsersGames);
