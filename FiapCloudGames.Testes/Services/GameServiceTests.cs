@@ -1,4 +1,5 @@
 using FiapCloudGames.Application.DTOs.Game.Request;
+using FiapCloudGames.Application.DTOs.Game.Response;
 using FiapCloudGames.Application.Interfaces;
 using FiapCloudGames.Application.Services;
 using FiapCloudGames.Domain.Entity;
@@ -12,6 +13,7 @@ public class GameServiceTests
     private readonly Mock<IMongoGameRepository> _mongoGameRepositoryMock;
     private readonly Mock<IOnSaleRepository> _onSaleRepositoryMock;
     private readonly Mock<IValidationBehavior<GameRequest>> _validationBehavior;
+    private readonly Mock<ICacheService> _cacheServiceMock;
     private readonly GameService _gameService;
 
     public GameServiceTests()
@@ -19,6 +21,11 @@ public class GameServiceTests
         _mongoGameRepositoryMock = new Mock<IMongoGameRepository>();
         _onSaleRepositoryMock = new Mock<IOnSaleRepository>();
         _validationBehavior = new Mock<IValidationBehavior<GameRequest>>();
+        _cacheServiceMock = new Mock<ICacheService>();
+        _cacheServiceMock.Setup(c => c.GetAsync<IEnumerable<GameCreatedResponse>>(It.IsAny<string>()))
+                         .ReturnsAsync((IEnumerable<GameCreatedResponse>?)null);
+        _cacheServiceMock.Setup(c => c.GetAsync<GameResponseFull>(It.IsAny<string>()))
+                         .ReturnsAsync((GameResponseFull?)null);
 
         _onSaleRepositoryMock.Setup(r => r.GetAllAsync())
                              .ReturnsAsync(new List<OnSale>());
@@ -26,7 +33,8 @@ public class GameServiceTests
         _gameService = new GameService(
             _validationBehavior.Object,
             _mongoGameRepositoryMock.Object,
-            _onSaleRepositoryMock.Object
+            _onSaleRepositoryMock.Object,
+            _cacheServiceMock.Object
         );
     }
 

@@ -13,16 +13,23 @@ namespace FiapCloudGames.Application.Services
         private readonly IValidationBehavior<GameRequest> _validation;
         private readonly IMongoGameRepository _mongoGameRepository;
         private readonly IOnSaleRepository _onSaleRepository;
+        private readonly ICacheService _cacheService;
+        private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(1);
+        private const string AllGamesCacheKey = "games:all";
 
         public GameService(
             IValidationBehavior<GameRequest> validation,
             IMongoGameRepository mongoGameRepository,
-            IOnSaleRepository onSaleRepository)
+            IOnSaleRepository onSaleRepository,
+            ICacheService cacheService)
         {
             _validation = validation;
             _mongoGameRepository = mongoGameRepository;
             _onSaleRepository = onSaleRepository;
+            _cacheService = cacheService;
         }
+
+        private static string GameCacheKey(Guid id) => $"games:{id}";
 
         public async Task<GameCreatedResponse> CreateGame (GameRequest request)
         {
@@ -42,6 +49,7 @@ namespace FiapCloudGames.Application.Services
                 request.Tags);
 
             await _mongoGameRepository.AddAsync(game);
+            await _cacheService.RemoveAsync(AllGamesCacheKey);
 
             var CreateGame = new GameCreatedResponse(game.Id, game.Name, game.Price, game.Description, game.Category);
 
@@ -49,6 +57,12 @@ namespace FiapCloudGames.Application.Services
         }
         public async Task<IEnumerable<GameCreatedResponse>> GetAllAsync ()
         {
+            var cached = await _cacheService.GetAsync<IEnumerable<GameCreatedResponse>>(AllGamesCacheKey);
+            if (cached is not null)
+            {
+                return cached;
+            }
+
             var games = await _mongoGameRepository.GetAllAsync();
             var gameList = games.ToList();
             var sales = await _onSaleRepository.GetAllAsync();
@@ -60,11 +74,19 @@ namespace FiapCloudGames.Application.Services
                 response.Price = GetPriceWithDiscount(game, sales);
             }
 
+            await _cacheService.SetAsync(AllGamesCacheKey, responses, CacheExpiration);
+
             return responses;
         }
 
         public async Task<GameResponseFull> GetGameById (Guid id)
         {
+            var cached = await _cacheService.GetAsync<GameResponseFull>(GameCacheKey(id));
+            if (cached is not null)
+            {
+                return cached;
+            }
+
             var response = await _mongoGameRepository.GetByIdAsync(id);
 
             if (response is null)
@@ -75,6 +97,9 @@ namespace FiapCloudGames.Application.Services
             var gameResponse = GameResponseFull.FromGameFullData(response);
             var sales = await _onSaleRepository.GetAllAsync();
             gameResponse.Price = GetPriceWithDiscount(response, sales);
+
+            await _cacheService.SetAsync(GameCacheKey(id), gameResponse, CacheExpiration);
+
             return Result<GameResponseFull>.Success(gameResponse).Value;
         }
 
@@ -122,6 +147,9 @@ namespace FiapCloudGames.Application.Services
             {
                 throw new KeyNotFoundException($"Jogo com o ID {id} não foi encontrado.");
             }
+
+            await _cacheService.RemoveAsync(AllGamesCacheKey);
+            await _cacheService.RemoveAsync(GameCacheKey(id));
 
             return Result<GameCreatedResponse>.Success(new GameCreatedResponse(
                 result.Id,

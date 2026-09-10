@@ -4,6 +4,7 @@ using FiapCloudGames.Infrastructure.MessageBus;
 using FiapCloudGames.Infrastructure.Persistence;
 using FiapCloudGames.Infrastructure.Persistence.Mongo;
 using FiapCloudGames.Infrastructure.Persistence.Mongo.Migrations;
+using FiapCloudGames.Infrastructure.Persistence.Redis;
 using FiapCloudGames.Infrastructure.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +34,8 @@ namespace FiapCloudGames.Infrastructure
             services.AddSingleton<IRabbitMqConsumer, RabbitMqConsumer>();
             services.AddHostedService<RabbitMqWorker>();
 
+            services.AddScoped<ICacheService, RedisCacheService>();
+
             return services;
         }
 
@@ -53,6 +56,17 @@ namespace FiapCloudGames.Infrastructure
                 configuration.GetSection("MongoSettings"));
 
             services.AddSingleton<MongoContext>();
+
+            var redisSettings =
+                configuration
+                .GetSection("Redis")
+                .Get<RedisSettings>() ?? new RedisSettings();
+
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisSettings.ConnectionString;
+                options.InstanceName = redisSettings.InstanceName;
+            });
 
             return services;
         }
