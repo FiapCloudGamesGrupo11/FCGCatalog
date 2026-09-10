@@ -3,6 +3,7 @@ using FiapCloudGames.Application.DTOs.Game.Response;
 using FiapCloudGames.Application.Interfaces;
 using FiapCloudGames.Application.Results;
 using FiapCloudGames.Domain.Entity;
+using FiapCloudGames.Domain.Enums;
 using FiapCloudGames.Domain.Interfaces;
 
 namespace FiapCloudGames.Application.Services
@@ -10,84 +11,125 @@ namespace FiapCloudGames.Application.Services
     public class GameService : IGameService
     {
         private readonly IValidationBehavior<GameRequest> _validation;
-        private readonly IGameRepository _gameRepository;
+        private readonly IMongoGameRepository _mongoGameRepository;
+        private readonly IOnSaleRepository _onSaleRepository;
 
-        public GameService(IValidationBehavior<GameRequest> validation, IGameRepository gameRepository)
+        public GameService(
+            IValidationBehavior<GameRequest> validation,
+            IMongoGameRepository mongoGameRepository,
+            IOnSaleRepository onSaleRepository)
         {
             _validation = validation;
-            _gameRepository = gameRepository;
-
+            _mongoGameRepository = mongoGameRepository;
+            _onSaleRepository = onSaleRepository;
         }
 
         public async Task<GameCreatedResponse> CreateGame (GameRequest request)
         {
             //await _validation.ValidateAsync(request);
 
-            var Game = new Game(request.Name, request.Price, request.Description, request.Category);
-            var response = await _gameRepository.AddAsync(Game);
-            var CreateGame = new GameCreatedResponse(response.Name, response.Price, response.Description, response.Category);
+            var game = GameFullData.TransferData(
+                request.Name,
+                request.Description,
+                request.Category,
+                request.Developer,
+                request.Publisher,
+                request.Genres,
+                request.Platforms,
+                request.Price,
+                request.ReleaseDate,
+                request.Rating,
+                request.Tags);
+
+            await _mongoGameRepository.AddAsync(game);
+
+            var CreateGame = new GameCreatedResponse(game.Id, game.Name, game.Price, game.Description, game.Category);
 
             return Result<GameCreatedResponse>.Success(CreateGame).Value;
         }
         public async Task<IEnumerable<GameCreatedResponse>> GetAllAsync ()
         {
+            var games = await _mongoGameRepository.GetAllAsync();
+            var gameList = games.ToList();
+            var sales = await _onSaleRepository.GetAllAsync();
+            var responses = GameCreatedResponse.FromGameFullDataList(gameList);
 
-            var games = await _gameRepository.GetAllAsync();
-
-            foreach (var item in games)
+            foreach (var response in responses)
             {
-
-                if (item.OnSales.Count > 0)
-                {
-
-                    var onSale = item.OnSales.FirstOrDefault();
-                    if (onSale != null)
-                    {
-                        item.Price = onSale.GetDiscountedPrice();
-                    }
-                }
+                var game = gameList.First(game => game.Id == response.Id);
+                response.Price = GetPriceWithDiscount(game, sales);
             }
-            return games.Select(g => new GameCreatedResponse(g.Name, g.Price, g.Description, g.Category));
+
+            return responses;
         }
 
-        public async Task<GameCreatedResponse> GetGameById (Guid id)
+        public async Task<GameResponseFull> GetGameById (Guid id)
         {
-            var response = await _gameRepository.GetGameByID(id);
+            var response = await _mongoGameRepository.GetByIdAsync(id);
 
-            if (response.OnSales.Count > 0)
+            if (response is null)
             {
-
-                var onSale = response.OnSales.FirstOrDefault();
-                if (onSale != null)
-                {
-                    response.Price = onSale.GetDiscountedPrice();
-                }
+                throw new KeyNotFoundException($"Jogo com o ID {id} não foi encontrado.");
             }
 
-
-            var gameResponse = Parse(response);
-            return Result<GameCreatedResponse>.Success(gameResponse).Value;
+            var gameResponse = GameResponseFull.FromGameFullData(response);
+            var sales = await _onSaleRepository.GetAllAsync();
+            gameResponse.Price = GetPriceWithDiscount(response, sales);
+            return Result<GameResponseFull>.Success(gameResponse).Value;
         }
 
+
+        private static decimal GetPriceWithDiscount(GameFullData game, IEnumerable<OnSale> sales)
+        {
+            var now = DateTime.Now;
+            var sale = sales.FirstOrDefault(onSale =>
+                onSale.GameId == game.Id &&
+                onSale.Status == Status.Active &&
+                now >= onSale.StartDate &&
+                now <= onSale.EndDate);
+
+            return sale is null
+                ? game.Price
+                : game.Price - (game.Price * sale.DiscountPercentage / 100);
+        }
 
         public async Task<GameCreatedResponse> UpdateGame(Guid id, GameRequest request)
         {
-            var existingGame = await _gameRepository.GetGameByID(id);
+            var existingGame = await _mongoGameRepository.GetByIdAsync(id);
 
-            existingGame.Name = request.Name != null ? request.Name : existingGame.Name;
-            existingGame.Price = request.Price != null ? request.Price : existingGame.Price;
-            existingGame.Description = request.Description != null ? request.Description : existingGame.Description;
-            existingGame.Category = request.Category != null ? request.Category : existingGame.Category;
+            if (existingGame is null)
+            {
+                throw new KeyNotFoundException($"Jogo com o ID {id} não foi encontrado.");
+            }
 
-            var result = await _gameRepository.UpdateGameAsync(existingGame);
+            var updatedGame = GameFullData.TransferData(
+                request.Name,
+                request.Description,
+                request.Category,
+                request.Developer,
+                request.Publisher,
+                request.Genres,
+                request.Platforms,
+                request.Price,
+                request.ReleaseDate,
+                request.Rating,
+                request.Tags);
+            updatedGame.Id = existingGame.Id;
 
-            return Result<GameCreatedResponse>.Success(new GameCreatedResponse(existingGame.Name, existingGame.Price, existingGame.Description, existingGame.Category)).Value;
+            var result = await _mongoGameRepository.UpdateAsync(updatedGame);
+
+            if (result is null)
+            {
+                throw new KeyNotFoundException($"Jogo com o ID {id} não foi encontrado.");
+            }
+
+            return Result<GameCreatedResponse>.Success(new GameCreatedResponse(
+                result.Id,
+                result.Name,
+                result.Price,
+                result.Description,
+                result.Category)).Value;
         }
 
-
-        private static GameCreatedResponse Parse(Game game)
-        {
-            return new GameCreatedResponse(game.Name, game.Price, game.Description, game.Category);
-        }
     }
 }

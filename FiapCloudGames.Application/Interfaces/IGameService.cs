@@ -7,7 +7,7 @@ namespace FiapCloudGames.Application.Interfaces
     {
         Task<GameCreatedResponse> CreateGame(GameRequest gameRequest);
         Task<IEnumerable<GameCreatedResponse>> GetAllAsync();
-        Task<GameCreatedResponse> GetGameById(Guid id);
+        Task<GameResponseFull> GetGameById(Guid id);
         Task<GameCreatedResponse> UpdateGame(Guid id, GameRequest request);
 
     }

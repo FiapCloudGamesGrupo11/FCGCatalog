@@ -1,14 +1,20 @@
-﻿namespace FiapCloudGames.Domain.Entity
+﻿using MongoDB.Bson.Serialization.Attributes;
+
+namespace FiapCloudGames.Domain.Entity
 {
     public class Game
     {
+        [BsonId]
         public Guid Id { get; set; }
+        [BsonElement("name")]
         public string Name { get; set; }
+        [BsonElement("description")]
         public string Description { get; set; }
+        [BsonElement("category")]
         public string Category { get; set; }
+        [BsonElement("price")]
         public decimal Price { get; set; }
 
-        public IList<UsersGames> UsersGames { get; set; }
         public ICollection<OnSale> OnSales { get; set; } = new List<OnSale>();
 
         public Game () { }

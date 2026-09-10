@@ -15,17 +15,14 @@ namespace FiapCloudGames.Infrastructure.Persistence.Configurations
             builder
                 .HasKey(ug => new { ug.UserId, ug.GameId });
 
-            //  Relacionamento com User
+            // Sem relacionamento (FK) com User/Game: existência do Game é validada na aplicação antes do insert
             builder
-                .HasOne(ug => ug.user)
-                .WithMany(u => u.UsersGames) // precisa existir no User
-                .HasForeignKey(ug => ug.UserId);
+                .Property(ug => ug.UserId)
+                .IsRequired();
 
-            //  Relacionamento com Game
             builder
-                .HasOne(ug => ug.game)
-                .WithMany(g => g.UsersGames) // precisa existir no Game
-                .HasForeignKey(ug => ug.GameId);
+                .Property(ug => ug.GameId)
+                .IsRequired();
 
             //  Valor pago
             builder

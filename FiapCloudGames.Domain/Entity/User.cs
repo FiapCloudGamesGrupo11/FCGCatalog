@@ -48,7 +48,5 @@ namespace FiapCloudGames.Domain.Entity
         public string Password { get; set; }
         public Role Role { get; private set; }
         public Status Status { get; private set; }
-
-        public IList<UsersGames> UsersGames { get; set; }
     }    
 }

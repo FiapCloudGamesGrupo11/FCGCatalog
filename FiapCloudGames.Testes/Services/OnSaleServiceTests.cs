@@ -10,32 +10,53 @@ namespace FiapCloudGames.Testes.Services;
 public class OnSaleServiceTests
 {
     private readonly Mock<IOnSaleRepository> _onSaleRepositoryMock;
-    private readonly Mock<IGameRepository> _gameRepositoryMock;
+    private readonly Mock<IMongoGameRepository> _mongoGameRepositoryMock;
     private readonly OnSaleService _onSaleService;
 
     public OnSaleServiceTests()
     {
         _onSaleRepositoryMock = new Mock<IOnSaleRepository>();
-        _gameRepositoryMock = new Mock<IGameRepository>();
+        _mongoGameRepositoryMock = new Mock<IMongoGameRepository>();
 
         _onSaleService = new OnSaleService(
             _onSaleRepositoryMock.Object,
-            _gameRepositoryMock.Object
+            _mongoGameRepositoryMock.Object
         );
+    }
+
+    private static GameFullData CreateGame(Guid id, string name, decimal price)
+    {
+        var game = GameFullData.TransferData(
+            name,
+            "Description",
+            "Category",
+            "Developer",
+            "Publisher",
+            new List<string>(),
+            new List<string>(),
+            price,
+            DateTime.Now,
+            "E",
+            new List<string>());
+        game.Id = id;
+        return game;
     }
 
     [Fact]
     public async Task GetAllAsync_ShouldReturnListOfOnSale_WhenSalesExist()
     {
         // Arrange
-        var game = new Game("Super Game", 100m, "Description", "Category");
+        var game = CreateGame(Guid.NewGuid(), "Super Game", 100m);
         var sales = new List<OnSale>
         {
-            new OnSale { Id = Guid.NewGuid(), GameId = game.Id, Game = game, DiscountPercentage = 20, StartDate = DateTime.Now.AddDays(-1), EndDate = DateTime.Now.AddDays(1), Status = Domain.Enums.Status.Active }
+            new OnSale { Id = Guid.NewGuid(), GameId = game.Id, DiscountPercentage = 20, StartDate = DateTime.Now.AddDays(-1), EndDate = DateTime.Now.AddDays(1), Status = Domain.Enums.Status.Active }
         };
 
         _onSaleRepositoryMock.Setup(r => r.GetAllAsync())
                              .ReturnsAsync(sales);
+
+        _mongoGameRepositoryMock.Setup(r => r.GetAllAsync())
+                                .ReturnsAsync(new List<GameFullData> { game });
 
         // Act
         var result = await _onSaleService.GetAllAsync();
@@ -50,15 +71,80 @@ public class OnSaleServiceTests
     }
 
     [Fact]
+    public async Task GetAllAsync_ShouldExcludeSale_WhenPromotionDateHasExpired()
+    {
+        // Arrange
+        var game = CreateGame(Guid.NewGuid(), "Super Game", 100m);
+        var sales = new List<OnSale>
+        {
+            new OnSale
+            {
+                Id = Guid.NewGuid(),
+                GameId = game.Id,
+                DiscountPercentage = 20,
+                StartDate = DateTime.Now.AddDays(-30),
+                EndDate = DateTime.Now.AddDays(-1),
+                Status = Domain.Enums.Status.Active
+            }
+        };
+
+        _onSaleRepositoryMock.Setup(r => r.GetAllAsync())
+                             .ReturnsAsync(sales);
+
+        _mongoGameRepositoryMock.Setup(r => r.GetAllAsync())
+                                .ReturnsAsync(new List<GameFullData> { game });
+
+        // Act
+        var result = await _onSaleService.GetAllAsync();
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ShouldReturnOriginalPrice_WhenSaleIsDeactivated()
+    {
+        // Arrange
+        var game = CreateGame(Guid.NewGuid(), "Super Game", 100m);
+        var sales = new List<OnSale>
+        {
+            new OnSale
+            {
+                Id = Guid.NewGuid(),
+                GameId = game.Id,
+                DiscountPercentage = 20,
+                StartDate = DateTime.Now.AddDays(-1),
+                EndDate = DateTime.Now.AddDays(1),
+                Status = Domain.Enums.Status.Desactivated
+            }
+        };
+
+        _onSaleRepositoryMock.Setup(r => r.GetAllAsync())
+                             .ReturnsAsync(sales);
+
+        _mongoGameRepositoryMock.Setup(r => r.GetAllAsync())
+                                .ReturnsAsync(new List<GameFullData> { game });
+
+        // Act
+        var result = await _onSaleService.GetAllAsync();
+
+        // Assert
+        Assert.Equal(100m, result.Single().DiscountedPrice);
+    }
+
+    [Fact]
     public async Task GetByIdAsync_ShouldReturnOnSaleResponse_WhenExists()
     {
         // Arrange
         var saleId = Guid.NewGuid();
-        var game = new Game("Super Game", 200m, "Description", "Category");
-        var expectedSale = new OnSale { Id = saleId, GameId = game.Id, Game = game, DiscountPercentage = 50, StartDate = DateTime.Now.AddDays(-1), EndDate = DateTime.Now.AddDays(1), Status = Domain.Enums.Status.Active };
+        var game = CreateGame(Guid.NewGuid(), "Super Game", 200m);
+        var expectedSale = new OnSale { Id = saleId, GameId = game.Id, DiscountPercentage = 50, StartDate = DateTime.Now.AddDays(-1), EndDate = DateTime.Now.AddDays(1), Status = Domain.Enums.Status.Active };
 
         _onSaleRepositoryMock.Setup(r => r.GetByIdAsync(saleId))
                              .ReturnsAsync(expectedSale);
+
+        _mongoGameRepositoryMock.Setup(r => r.GetByIdAsync(game.Id))
+                                .ReturnsAsync(game);
 
         // Act
         var result = await _onSaleService.GetByIdAsync(saleId);
@@ -97,10 +183,10 @@ public class OnSaleServiceTests
             EndDate = DateTime.Now.AddDays(5)
         };
 
-        var game = new Game("Super Game", 100m, "Description", "Category") { Id = request.GameId };
+        var game = CreateGame(request.GameId, "Super Game", 100m);
 
-        _gameRepositoryMock.Setup(r => r.GetGameByID(request.GameId))
-                           .ReturnsAsync(game);
+        _mongoGameRepositoryMock.Setup(r => r.GetByIdAsync(request.GameId))
+                                .ReturnsAsync(game);
 
         _onSaleRepositoryMock.Setup(r => r.AddAsync(It.IsAny<OnSale>()))
                              .Returns(Task.CompletedTask);
@@ -119,9 +205,9 @@ public class OnSaleServiceTests
     {
         // Arrange
         var request = new OnSaleRequest { GameId = Guid.NewGuid() };
-        
-        _gameRepositoryMock.Setup(r => r.GetGameByID(request.GameId))
-                           .ReturnsAsync((Game?)null);
+
+        _mongoGameRepositoryMock.Setup(r => r.GetByIdAsync(request.GameId))
+                                .ReturnsAsync((GameFullData?)null);
 
         // Act
         var result = await _onSaleService.CreateAsync(request);
@@ -135,8 +221,8 @@ public class OnSaleServiceTests
     {
         // Arrange
         var saleId = Guid.NewGuid();
-        var game = new Game("Super Game", 100m, "Description", "Category");
-        var existingSale = new OnSale { Id = saleId, GameId = game.Id, Game = game, DiscountPercentage = 10 };
+        var game = CreateGame(Guid.NewGuid(), "Super Game", 100m);
+        var existingSale = new OnSale { Id = saleId, GameId = game.Id, DiscountPercentage = 10 };
 
         var request = new OnSaleRequest
         {
@@ -148,6 +234,9 @@ public class OnSaleServiceTests
 
         _onSaleRepositoryMock.Setup(r => r.GetByIdAsync(saleId))
                              .ReturnsAsync(existingSale);
+
+        _mongoGameRepositoryMock.Setup(r => r.GetByIdAsync(game.Id))
+                                .ReturnsAsync(game);
 
         _onSaleRepositoryMock.Setup(r => r.UpdateAsync(It.IsAny<OnSale>()))
                              .Returns(Task.CompletedTask);

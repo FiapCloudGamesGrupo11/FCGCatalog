@@ -10,7 +10,7 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ====================== SERVIÇOS ======================
+// ====================== SERVIï¿½OS ======================
 
 builder.Services.AddHealthChecks();
 
@@ -29,10 +29,10 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "Fiap Cloud Games API",
         Version = "v1",
-        Description = "API REST - Cadastro de Usuários e Biblioteca de Jogos (Fase 1)"
+        Description = "API REST - Cadastro de Usuï¿½rios e Biblioteca de Jogos (Fase 1)"
     });
 
-    // Configuração do Bearer Token no Swagger
+    // Configuraï¿½ï¿½o do Bearer Token no Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "Insira o token JWT no formato: Bearer {seu_token}",
@@ -87,7 +87,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// ====================== INJEÇÃO DE DEPENDÊNCIAS ======================
+// ====================== INJEï¿½ï¿½O DE DEPENDï¿½NCIAS ======================
 builder.Services
     .AddConfigServices()
     .AddConfigInfrastructure(builder.Configuration);
@@ -112,10 +112,13 @@ builder.Host.UseSerilog();
 
 var app = builder.Build();
 
+// Aplica migrations do SQL Server e o seed do MongoDB usando o container de DI real da aplicaÃ§Ã£o
+await app.Services.MigrateAndSeedInfrastructureAsync();
+
 app.MapHealthChecks("/health");
 
-// Middleware de Exceção - DEVE SER SEMPRE O PRIMEIRO
-app.UseCustomExceptionMiddleware();
+// Middleware de Exceï¿½ï¿½o - DEVE SER SEMPRE O PRIMEIRO
+// app.UseCustomExceptionMiddleware();
 
 if (app.Environment.IsDevelopment())
 {

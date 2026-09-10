@@ -54,12 +54,6 @@ namespace FiapCloudGames.Infrastructure.Persistence.Configurations
                 .Property(u => u.CreatedAt)
                 .HasColumnType("datetime2")
                 .IsRequired();
-
-            builder
-                .HasMany(u => u.UsersGames)
-                .WithOne(ug => ug.user)
-                .HasForeignKey(ug => ug.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

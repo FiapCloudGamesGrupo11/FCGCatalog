@@ -1,6 +1,7 @@
 ﻿using FiapCloudGames.Application.Behaviors;
 using FiapCloudGames.Application.Interfaces;
 using FiapCloudGames.Application.Services;
+using FiapCloudGames.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FiapCloudGames.Application
