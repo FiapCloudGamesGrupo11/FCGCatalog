@@ -1,6 +1,7 @@
 ﻿using FiapCloudGames.Domain.Entity;
 using FiapCloudGames.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using NewRelic.Api.Agent;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
@@ -12,8 +13,10 @@ namespace FiapCloudGames.Infrastructure.MessageBus
     {
         private readonly IRabbitMqConnection _connection;
         private readonly IServiceScopeFactory _scopeFactory;
-        
-        public RabbitMqConsumer(IRabbitMqConnection connection, IServiceScopeFactory scopeFactory)
+
+        public RabbitMqConsumer(
+            IRabbitMqConnection connection,
+            IServiceScopeFactory scopeFactory)
         {
             _connection = connection;
             _scopeFactory = scopeFactory;
@@ -26,69 +29,126 @@ namespace FiapCloudGames.Infrastructure.MessageBus
             await channel.ExchangeDeclareAsync(
                 "payment.exchange",
                 ExchangeType.Fanout,
-                durable: true
-            );
+                durable: true);
 
             await channel.QueueDeclareAsync(
                 queue: queue,
                 durable: true,
                 exclusive: false,
-                autoDelete: false
-            );
+                autoDelete: false);
 
             await channel.QueueBindAsync(
                 queue: queue,
                 exchange: "payment.exchange",
-                routingKey: ""
-            );
+                routingKey: "");
 
             var consumer = new AsyncEventingBasicConsumer(channel);
 
-            consumer.ReceivedAsync += async (sender, args) =>
-            {
-                var body = args.Body.ToArray();
-                var message = Encoding.UTF8.GetString(body);
-
-                try
-                {
-                    var result = JsonSerializer.Deserialize<PaymentResult>(message);
-
-                    if (result is null)
-                    {
-                        Console.WriteLine("Mensagem inválida recebida, descartando.");
-                        await channel.BasicNackAsync(args.DeliveryTag, multiple: false, requeue: false);
-                        return;
-                    }
-
-                    using var scopeUG = _scopeFactory.CreateScope();
-                    using var scopeOrder = _scopeFactory.CreateScope();
-
-                    Console.WriteLine($"Mensagem recebida: {message}");
-
-                    var userGameRepository = scopeUG.ServiceProvider.GetRequiredService<IUserGameRepository>();
-                    var orderRepository = scopeOrder.ServiceProvider.GetRequiredService<IOrderRepository>();
-
-                    bool isApproved = result.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase);
-                    int newStatus = isApproved ? 1 : 2;
-
-                    await orderRepository.UpdateStatus(result.UserId, result.GameId, newStatus);
-                    await userGameRepository.Create(new UsersGames(result.UserId, result.GameId, result.Amount, 1));
-
-                    
-                    await channel.BasicAckAsync(deliveryTag: args.DeliveryTag, multiple: false);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Erro ao processar mensagem: {ex.Message}");
-                    await channel.BasicNackAsync(args.DeliveryTag, multiple: false, requeue: false);
-                }
-            };
+            consumer.ReceivedAsync +=
+                (_, args) => ProcessMessageAsync(channel, args);
 
             await channel.BasicConsumeAsync(
                 queue: queue,
                 autoAck: false,
-                consumer: consumer
-            );
+                consumer: consumer);
+        }
+
+        [Transaction]
+        private async Task ProcessMessageAsync(
+            IChannel channel,
+            BasicDeliverEventArgs args)
+        {
+            var transaction = NewRelic.Api.Agent.NewRelic
+                .GetAgent()
+                .CurrentTransaction;
+
+            if (args.BasicProperties.Headers is { Count: > 0 } headers)
+            {
+                transaction.AcceptDistributedTraceHeaders(
+                    headers,
+                    GetHeaderValues,
+                    TransportType.Queue);
+            }
+
+            var body = args.Body.ToArray();
+            var message = Encoding.UTF8.GetString(body);
+
+            try
+            {
+                var result =
+                    JsonSerializer.Deserialize<PaymentResult>(message);
+
+                if (result is null)
+                {
+                    Console.WriteLine(
+                        "Mensagem inválida recebida, descartando.");
+
+                    await channel.BasicNackAsync(
+                        args.DeliveryTag,
+                        multiple: false,
+                        requeue: false);
+
+                    return;
+                }
+
+                using var scopeUG = _scopeFactory.CreateScope();
+                using var scopeOrder = _scopeFactory.CreateScope();
+
+                Console.WriteLine($"Mensagem recebida: {message}");
+
+                var userGameRepository =
+                    scopeUG.ServiceProvider
+                        .GetRequiredService<IUserGameRepository>();
+
+                var orderRepository =
+                    scopeOrder.ServiceProvider
+                        .GetRequiredService<IOrderRepository>();
+
+                bool isApproved = result.Status.Equals(
+                    "Approved",
+                    StringComparison.OrdinalIgnoreCase);
+
+                int newStatus = isApproved ? 1 : 2;
+
+                await orderRepository.UpdateStatus(
+                    result.UserId,
+                    result.GameId,
+                    newStatus);
+
+                await userGameRepository.Create(
+                    new UsersGames(
+                        result.UserId,
+                        result.GameId,
+                        result.Amount,
+                        1));
+
+                await channel.BasicAckAsync(
+                    args.DeliveryTag,
+                    multiple: false);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"Erro ao processar mensagem: {ex.Message}");
+
+                await channel.BasicNackAsync(
+                    args.DeliveryTag,
+                    multiple: false,
+                    requeue: false);
+            }
+        }
+
+        private static IEnumerable<string> GetHeaderValues(
+            IDictionary<string, object?> headers,
+            string key)
+        {
+            if (!headers.TryGetValue(key, out var value) || value is null)
+                return Array.Empty<string>();
+
+            if (value is byte[] bytes)
+                return new[] { Encoding.UTF8.GetString(bytes) };
+
+            return new[] { value.ToString() ?? string.Empty };
         }
     }
 }
