@@ -7,15 +7,12 @@ namespace FiapCloudGames.Infrastructure.MessageBus
     {
         private readonly IRabbitMqConnection _connection;
 
-        public RabbitMqPublisher(
-            IRabbitMqConnection connection)
+        public RabbitMqPublisher(IRabbitMqConnection connection)
         {
             _connection = connection;
         }
 
-        public async Task PublishAsync(
-            string queue,
-            byte[] message)
+        public async Task PublishAsync(string queue, byte[] message)
         {
             var channel = await _connection.GetChannelAsync();
 
@@ -25,12 +22,30 @@ namespace FiapCloudGames.Infrastructure.MessageBus
                 exclusive: false,
                 autoDelete: false);
 
+            var headers = new Dictionary<string, object?>();
+
+            NewRelic.Api.Agent.NewRelic.GetAgent()
+                .CurrentTransaction
+                .InsertDistributedTraceHeaders(
+                    headers,
+                    (carrier, key, value) => carrier[key] = value);
+
+            var properties = new BasicProperties
+            {
+                Persistent = true,
+                ContentType = "application/json",
+                Headers = headers
+            };
+
             await channel.BasicPublishAsync(
                 exchange: "",
                 routingKey: queue,
+                mandatory: false,
+                basicProperties: properties,
                 body: message);
 
-            Console.WriteLine($"Mensagem publicada na fila '{queue}': {System.Text.Encoding.UTF8.GetString(message)}");
+            Console.WriteLine(
+                $"Mensagem publicada na fila '{queue}': {System.Text.Encoding.UTF8.GetString(message)}");
         }
     }
 }
