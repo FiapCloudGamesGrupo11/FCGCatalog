@@ -11,11 +11,13 @@ namespace FiapCloudGames.Application.Services
     {
         private readonly IOnSaleRepository _repository;
         private readonly IMongoGameRepository _repositoryGame;
+        private readonly ICacheService _cacheService;
 
-        public OnSaleService (IOnSaleRepository repository, IMongoGameRepository repositoryGame)
+        public OnSaleService (IOnSaleRepository repository, IMongoGameRepository repositoryGame, ICacheService cacheService)
         {
             _repository = repository;
             _repositoryGame = repositoryGame;
+            _cacheService = cacheService;
         }
 
         public async Task<IEnumerable<OnSaleResponse>> GetAllAsync ()
@@ -76,6 +78,7 @@ namespace FiapCloudGames.Application.Services
             if (game is null) return null;
 
             await _repository.AddAsync(sale);
+            await InvalidatePricesAsync(sale.GameId);
 
             return new OnSaleResponse
             {
@@ -97,6 +100,7 @@ namespace FiapCloudGames.Application.Services
             var game = await _repositoryGame.GetByIdAsync(request.GameId);
             if (game is null) throw new KeyNotFoundException("Jogo não encontrado");
 
+            var previousGameId = sale.GameId;
             sale.GameId = request.GameId;
             sale.DiscountPercentage = request.DiscountPercentage;
             sale.StartDate = request.StartDate;
@@ -104,8 +108,17 @@ namespace FiapCloudGames.Application.Services
             sale.Status = GetStatus(request.StartDate, request.EndDate);
 
             await _repository.UpdateAsync(sale);
+            await InvalidatePricesAsync(sale.GameId);
+            if (previousGameId != sale.GameId)
+                await _cacheService.RemoveAsync($"games:{previousGameId}");
 
             return CreateResponse(sale, game);
+        }
+
+        private async Task InvalidatePricesAsync(Guid gameId)
+        {
+            await _cacheService.RemoveAsync("games:all");
+            await _cacheService.RemoveAsync($"games:{gameId}");
         }
 
         private static OnSaleResponse CreateResponse(OnSale sale, GameFullData game)

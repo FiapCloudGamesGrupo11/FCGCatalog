@@ -1,5 +1,13 @@
 # FCGCatalog - Microsserviço de Catálogo de Jogos
 
+## Cache de preços e promoções
+
+Ao criar ou atualizar uma promoção, o `OnSaleService` invalida `games:all` e
+`games:{gameId}` no Redis após salvar. Se a promoção mudar de jogo, invalida também
+o detalhe do jogo anterior. A próxima consulta recalcula o desconto.
+Mudanças automáticas de data (início/fim de promoção) continuam sujeitas ao TTL
+de até um minuto. Os testes ficam em `OnSaleServiceTests`.
+
 ## Descrição
 
 O **FCGCatalog** é o microsserviço central da plataforma **FIAP Cloud Games (FCG)** responsável pelo gerenciamento do catálogo de jogos, pedidos de compra e histórico de compras dos usuários. Ele fornece funcionalidades completas de catálogo de games, permitindo que usuários naveguem, comprem jogos e acompanhem seus pedidos.

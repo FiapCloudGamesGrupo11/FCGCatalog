@@ -12,6 +12,7 @@ public class OnSaleServiceTests
     private readonly Mock<IOnSaleRepository> _onSaleRepositoryMock;
     private readonly Mock<IMongoGameRepository> _mongoGameRepositoryMock;
     private readonly OnSaleService _onSaleService;
+    private readonly Mock<ICacheService> _cacheMock = new();
 
     public OnSaleServiceTests()
     {
@@ -20,7 +21,8 @@ public class OnSaleServiceTests
 
         _onSaleService = new OnSaleService(
             _onSaleRepositoryMock.Object,
-            _mongoGameRepositoryMock.Object
+            _mongoGameRepositoryMock.Object,
+            _cacheMock.Object
         );
     }
 
@@ -40,6 +42,38 @@ public class OnSaleServiceTests
             new List<string>());
         game.Id = id;
         return game;
+    }
+
+    [Fact]
+    public async Task CreateAsync_InvalidatesPreviouslyCachedPrices()
+    {
+        var game = CreateGame(Guid.NewGuid(), "Game", 100m);
+        _mongoGameRepositoryMock.Setup(r => r.GetByIdAsync(game.Id)).ReturnsAsync(game);
+        await _onSaleService.CreateAsync(new OnSaleRequest
+        {
+            GameId = game.Id, DiscountPercentage = 20,
+            StartDate = DateTime.Now.AddDays(-1), EndDate = DateTime.Now.AddDays(1)
+        });
+        _cacheMock.Verify(c => c.RemoveAsync("games:all"), Times.Once);
+        _cacheMock.Verify(c => c.RemoveAsync($"games:{game.Id}"), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenChangingGame_InvalidatesOldAndNewGamePrices()
+    {
+        var oldId = Guid.NewGuid();
+        var game = CreateGame(Guid.NewGuid(), "New game", 100m);
+        var sale = new OnSale { Id = Guid.NewGuid(), GameId = oldId };
+        _onSaleRepositoryMock.Setup(r => r.GetByIdAsync(sale.Id)).ReturnsAsync(sale);
+        _mongoGameRepositoryMock.Setup(r => r.GetByIdAsync(game.Id)).ReturnsAsync(game);
+        await _onSaleService.UpdateAsync(sale.Id, new OnSaleRequest
+        {
+            GameId = game.Id, DiscountPercentage = 30,
+            StartDate = DateTime.Now.AddDays(-1), EndDate = DateTime.Now.AddDays(1)
+        });
+        _cacheMock.Verify(c => c.RemoveAsync("games:all"), Times.Once);
+        _cacheMock.Verify(c => c.RemoveAsync($"games:{oldId}"), Times.Once);
+        _cacheMock.Verify(c => c.RemoveAsync($"games:{game.Id}"), Times.Once);
     }
 
     [Fact]
