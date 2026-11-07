@@ -28,6 +28,9 @@
     <PackageReference Include="NewRelic.Agent.Api" Version="10.54.0" />
     <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.10" />
+    <PackageReference Include="OpenSearch.Net.Auth.AwsSigV4" Version="2.2.0" />
+    <PackageReference Include="OpenSearch.Net" Version="2.2.0" />
+    <PackageReference Include="AWSSDK.Core" Version="4.0.102" />
   </ItemGroup>
 
   <ItemGroup>

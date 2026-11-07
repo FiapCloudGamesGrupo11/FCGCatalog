@@ -4,6 +4,36 @@
 
 Após criar ou atualizar uma promoção, o `OnSaleService` invalida `games:all` e `games:{gameId}` no Redis. Se a promoção mudar de jogo, também invalida o detalhe do jogo anterior. A próxima consulta recompõe o valor com o desconto vigente. Mudanças causadas apenas pela passagem do tempo continuam limitadas pelo TTL do cache, atualmente de até um minuto. Esse comportamento é coberto por `OnSaleServiceTests`.
 
+## Busca com OpenSearch
+
+O MongoDB permanece como fonte oficial dos jogos. O OpenSearch mantém uma projeção reconstruível para busca textual com tolerância a erros e ordenação por relevância.
+
+- `GET /search?q=witchr&page=1&pageSize=20`: busca em nome, tags, gêneros, categoria, desenvolvedor, publicadora e descrição;
+- `POST /search/reindex`: rota administrativa que recria os documentos do índice a partir do MongoDB;
+- criação e atualização de jogos enviam o documento ao índice após a persistência no MongoDB;
+- falha de indexação não desfaz a gravação oficial no MongoDB e fica registrada no log.
+
+O nome recebe o maior peso de relevância, seguido por tags, gêneros e categoria. A opção `fuzziness=AUTO` permite pequenas diferenças de digitação.
+
+Configuração local:
+
+```powershell
+$env:OpenSearch__Endpoint = "http://localhost:9200"
+$env:OpenSearch__IndexName = "games-v1"
+$env:OpenSearch__UseAwsSigV4 = "false"
+```
+
+Configuração no EKS:
+
+```text
+OpenSearch__Endpoint=https://ENDPOINT_DO_DOMINIO
+OpenSearch__IndexName=games-v1
+OpenSearch__AwsRegion=us-east-1
+OpenSearch__UseAwsSigV4=true
+```
+
+Na AWS, o cliente assina as chamadas com SigV4 e usa a cadeia padrão de credenciais. O pod deve receber permissão por IAM Role; nenhuma chave AWS deve ser colocada no repositório ou no manifest.
+
 ## Descrição
 
 O **FCGCatalog** é o microsserviço central da plataforma **FIAP Cloud Games (FCG)** responsável pelo gerenciamento do catálogo de jogos, pedidos de compra e histórico de compras dos usuários. Ele fornece funcionalidades completas de catálogo de games, permitindo que usuários naveguem, comprem jogos e acompanhem seus pedidos.
@@ -14,7 +44,7 @@ Este microsserviço implementa arquitetura em camadas com separação clara entr
 
 ### O que foi feito
 
-- pipeline de CI com restauração auditada, compilação, 13 testes automatizados e build da imagem Docker;
+- pipeline de CI com restauração auditada, compilação, 17 testes automatizados e build da imagem Docker;
 - correção do teste do fluxo de compra para refletir a criação de pedido pendente antes da confirmação do pagamento;
 - atualização de dependências vulneráveis e auditoria de dependências transitivas;
 - redução do contexto do build Docker por meio do `.dockerignore`;
@@ -50,7 +80,7 @@ dotnet list FiapCloudGames.API.sln package --vulnerable --include-transitive
 docker build --tag fcg-catalog:local .
 ```
 
-O resultado esperado é 13 testes aprovados, nenhuma dependência vulnerável conhecida e uma imagem Docker criada com sucesso.
+O resultado esperado é 17 testes aprovados, nenhuma dependência vulnerável conhecida e uma imagem Docker criada com sucesso.
 
 ### Como manter
 

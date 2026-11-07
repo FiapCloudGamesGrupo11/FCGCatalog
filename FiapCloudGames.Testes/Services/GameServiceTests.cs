@@ -14,6 +14,7 @@ public class GameServiceTests
     private readonly Mock<IOnSaleRepository> _onSaleRepositoryMock;
     private readonly Mock<IValidationBehavior<GameRequest>> _validationBehavior;
     private readonly Mock<ICacheService> _cacheServiceMock;
+    private readonly Mock<IGameSearchService> _gameSearchServiceMock;
     private readonly GameService _gameService;
 
     public GameServiceTests()
@@ -22,6 +23,7 @@ public class GameServiceTests
         _onSaleRepositoryMock = new Mock<IOnSaleRepository>();
         _validationBehavior = new Mock<IValidationBehavior<GameRequest>>();
         _cacheServiceMock = new Mock<ICacheService>();
+        _gameSearchServiceMock = new Mock<IGameSearchService>();
         _cacheServiceMock.Setup(c => c.GetAsync<IEnumerable<GameCreatedResponse>>(It.IsAny<string>()))
                          .ReturnsAsync((IEnumerable<GameCreatedResponse>?)null);
         _cacheServiceMock.Setup(c => c.GetAsync<GameResponseFull>(It.IsAny<string>()))
@@ -34,7 +36,8 @@ public class GameServiceTests
             _validationBehavior.Object,
             _mongoGameRepositoryMock.Object,
             _onSaleRepositoryMock.Object,
-            _cacheServiceMock.Object
+            _cacheServiceMock.Object,
+            _gameSearchServiceMock.Object
         );
     }
 
@@ -78,6 +81,9 @@ public class GameServiceTests
         Assert.Equal(299.99m, result.Price);
         Assert.Equal("Classic game", result.Description);
         Assert.Equal("Platform", result.Category);
+        _gameSearchServiceMock.Verify(service => service.IndexAsync(
+            It.Is<GameFullData>(game => game.Name == "Super Mario"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
