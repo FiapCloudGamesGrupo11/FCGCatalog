@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/**
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-container:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore FiapCloudGames.API.sln -p:NuGetAudit=true -warnaserror:NU1901,NU1902,NU1903,NU1904
+
+      - name: Build
+        run: dotnet build FiapCloudGames.API.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test FiapCloudGames.API.sln --configuration Release --no-build --no-restore
+
+      - name: Build container image
+        run: docker build --tag fcg-catalog:${{ github.sha }} .

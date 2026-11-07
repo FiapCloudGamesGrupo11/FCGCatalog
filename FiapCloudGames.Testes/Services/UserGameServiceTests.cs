@@ -30,28 +30,31 @@ public class UserGameServiceTests
     }
 
     [Fact]
-    public async Task AddGameToUser_ShouldCallRepositoryCreate_AndPublishMessage()
+    public async Task AddGameToUser_ShouldCreatePendingOrder_AndPublishMessage()
     {
         // Arrange
         var userId = Guid.NewGuid();
         var gameId = Guid.NewGuid();
         var valuePay = 199.90m;
 
-        var createdUserGame = new UsersGames(userId, gameId, valuePay);
-
-        _userGameRepositoryMock
-            .Setup(r => r.Create(It.IsAny<UsersGames>()))
-            .ReturnsAsync(createdUserGame);
+        _orderRepositoryMock
+            .Setup(r => r.Create(It.IsAny<Order>()))
+            .ReturnsAsync((Order order) => order);
 
         // Act
         await _userGameService.AddGameToUser(userId, gameId, valuePay);
 
-        // Assert - repository called once with expected values
-        _userGameRepositoryMock.Verify(r => r.Create(It.Is<UsersGames>(ug =>
-            ug.UserId == userId &&
-            ug.GameId == gameId &&
-            ug.ValuePay == valuePay
+        // The game is only added to the user's library after payment approval.
+        _orderRepositoryMock.Verify(r => r.Create(It.Is<Order>(order =>
+            order.UserId == userId &&
+            order.GameId == gameId &&
+            order.Amount == valuePay &&
+            order.Status == FiapCloudGames.Domain.Enums.OrderStatus.Pending
         )), Times.Once);
+
+        _userGameRepositoryMock.Verify(
+            r => r.Create(It.IsAny<UsersGames>()),
+            Times.Never);
 
         // Assert - message published once to the configured queue with a non-empty payload
         _messagePublisherMock.Verify(p => p.PublishAsync(
