@@ -1,10 +1,8 @@
-version: "3.8"
-
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      SA_PASSWORD: "Your_strong!Passw0rd"
+      SA_PASSWORD: "${FCG_SQL_PASSWORD:?Defina FCG_SQL_PASSWORD no arquivo .env}"
       ACCEPT_EULA: "Y"
     ports:
       - "1433:1433"
@@ -22,8 +20,8 @@ services:
     image: mongo:7
     container_name: fcg-mongo
     environment:
-      MONGO_INITDB_ROOT_USERNAME: "admin"
-      MONGO_INITDB_ROOT_PASSWORD: "Your_strong!MongoPassw0rd"
+      MONGO_INITDB_ROOT_USERNAME: "${FCG_MONGO_USER:?Defina FCG_MONGO_USER no arquivo .env}"
+      MONGO_INITDB_ROOT_PASSWORD: "${FCG_MONGO_PASSWORD:?Defina FCG_MONGO_PASSWORD no arquivo .env}"
     ports:
       - "27018:27017"
     volumes:
@@ -42,8 +40,8 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: "${FCG_RABBITMQ_USER:?Defina FCG_RABBITMQ_USER no arquivo .env}"
+      RABBITMQ_DEFAULT_PASS: "${FCG_RABBITMQ_PASSWORD:?Defina FCG_RABBITMQ_PASSWORD no arquivo .env}"
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -83,13 +81,12 @@ services:
       - "8080:80"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      # Substitua a senha pelo mesmo valor usado em db.SA_PASSWORD
-      ConnectionStrings__ConnectionString: "Server=db,1433;Initial Catalog=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True;"
-      MongoSettings__ConnectionString: "mongodb://admin:Your_strong!MongoPassw0rd@mongo:27017/FiapCloudGames?authSource=admin"
+      ConnectionStrings__ConnectionString: "Server=db,1433;Initial Catalog=FiapCloudGames;User Id=sa;Password=${FCG_SQL_PASSWORD};TrustServerCertificate=True;"
+      MongoSettings__ConnectionString: "mongodb://${FCG_MONGO_USER}:${FCG_MONGO_PASSWORD}@mongo:27017/FiapCloudGames?authSource=admin"
       MongoSettings__DatabaseName: "FiapCloudGames"
       RabbitMq__Host: "rabbitmq"
-      RabbitMq__User: "guest"
-      RabbitMq__Password: "guest"
+      RabbitMq__User: "${FCG_RABBITMQ_USER}"
+      RabbitMq__Password: "${FCG_RABBITMQ_PASSWORD}"
       RabbitMq__OrderQueueName: "order-placed"
       RabbitMq__PaymentProcessQueueName: "catalog-payment-processed"
       Redis__ConnectionString: "redis:6379"
@@ -104,11 +101,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8070
-      ConnectionStrings__ConnectionString: "Server=db,1433;Initial Catalog=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True;"
+      ConnectionStrings__ConnectionString: "Server=db,1433;Initial Catalog=FiapCloudGames;User Id=sa;Password=${FCG_SQL_PASSWORD};TrustServerCertificate=True;"
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Port: "5672"
-      RabbitMQ__Username: guest
-      RabbitMQ__Password: guest
+      RabbitMQ__Username: "${FCG_RABBITMQ_USER}"
+      RabbitMQ__Password: "${FCG_RABBITMQ_PASSWORD}"
       RabbitMQ__QueueName: user-created
       CatalogApi__BaseUrl: "http://api:80"
     ports:
@@ -131,8 +128,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - RabbitMQ__Url=rabbitmq
-      - RabbitMQ__User=guest
-      - RabbitMQ__Password=guest
+      - RabbitMQ__User=${FCG_RABBITMQ_USER}
+      - RabbitMQ__Password=${FCG_RABBITMQ_PASSWORD}
     depends_on:
       rabbitmq:
         condition: service_healthy

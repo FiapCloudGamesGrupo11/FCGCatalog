@@ -4,7 +4,58 @@
 
 O **FCGCatalog** é o microsserviço central da plataforma **FIAP Cloud Games (FCG)** responsável pelo gerenciamento do catálogo de jogos, pedidos de compra e histórico de compras dos usuários. Ele fornece funcionalidades completas de catálogo de games, permitindo que usuários naveguem, comprem jogos e acompanhem seus pedidos.
 
-Este microsserviço implementa arquitetura em camadas com separação clara entre API, Aplicação, Domínio e Infraestrutura. Utiliza **JWT** para autenticação, **RabbitMQ** para comunicação assíncrona com outros microsserviços e **SQL Server** para persistência de dados.
+Este microsserviço implementa arquitetura em camadas com separação clara entre API, Aplicação, Domínio e Infraestrutura. Utiliza **JWT** para autenticação, **RabbitMQ** para comunicação assíncrona, **MongoDB** para jogos e promoções, **Redis** para cache distribuído e **SQL Server** para dados transacionais.
+
+## Fase 4 - estado da branch `feature/fase-4-catalog`
+
+### O que foi feito
+
+- pipeline de CI com restauração auditada, compilação, 13 testes automatizados e build da imagem Docker;
+- correção do teste do fluxo de compra para refletir a criação de pedido pendente antes da confirmação do pagamento;
+- atualização de dependências vulneráveis e auditoria de dependências transitivas;
+- redução do contexto do build Docker por meio do `.dockerignore`;
+- remoção de JWT e credenciais do RabbitMQ do `appsettings.json`;
+- confirmação da separação entre MongoDB, Redis e SQL Server já adotada pelo serviço.
+
+### Configuração local
+
+Defina os valores sensíveis por variáveis de ambiente. Em PowerShell:
+
+```powershell
+$env:JwtSettings__SecretKey = "VALOR_LOCAL_NAO_VERSIONADO"
+$env:RabbitMq__User = "USUARIO_LOCAL"
+$env:RabbitMq__Password = "SENHA_LOCAL"
+$env:ConnectionStrings__ConnectionString = "CONEXAO_SQL_LOCAL"
+$env:MongoSettings__ConnectionString = "CONEXAO_MONGO_LOCAL"
+$env:MongoSettings__DatabaseName = "fcg_catalog"
+$env:Redis__ConnectionString = "localhost:6379"
+```
+
+Os nomes das propriedades devem acompanhar o `appsettings.json`. Nunca registre valores reais no Git.
+
+Para usar o Docker Compose, copie `.env.example` para `.env`, substitua os marcadores e mantenha o novo arquivo somente no ambiente local.
+
+### Como testar
+
+Execute na raiz deste repositório:
+
+```powershell
+dotnet restore FiapCloudGames.API.sln -p:NuGetAudit=true -warnaserror:NU1901,NU1902,NU1903,NU1904
+dotnet test FiapCloudGames.API.sln --configuration Release --no-restore
+dotnet list FiapCloudGames.API.sln package --vulnerable --include-transitive
+docker build --tag fcg-catalog:local .
+```
+
+O resultado esperado é 13 testes aprovados, nenhuma dependência vulnerável conhecida e uma imagem Docker criada com sucesso.
+
+### Como manter
+
+- execute a auditoria de pacotes em toda atualização de dependência;
+- mantenha as migrações do MongoDB idempotentes;
+- revise a invalidação do Redis sempre que jogos ou promoções forem alterados;
+- publique imagens com tag imutável, nunca apenas `latest`;
+- mantenha segredos fora de arquivos versionados;
+- a integração com OpenSearch e o endpoint `/search` ainda pertencem às próximas etapas da Fase 4.
 
 ---
 
@@ -97,7 +148,7 @@ docker-compose ps
 # Use Docker apenas para SQL Server
 docker run -d --name sqlserver \
   -e 'ACCEPT_EULA=Y' \
-  -e 'MSSQL_SA_PASSWORD=Your_strong!Passw0rd' \
+  -e 'MSSQL_SA_PASSWORD=DEFINA_LOCALMENTE' \
   -p 1433:1433 \
   mcr.microsoft.com/mssql/server:2022-latest
 ```
@@ -117,17 +168,17 @@ docker run -d --name rabbitmq \
 ```json
 {
   "ConnectionStrings": {
-    "ConnectionString": "Server=localhost,1433;Database=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True"
+    "ConnectionString": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE"
   },
   "JwtSettings": {
-    "SecretKey": "_07P\\Wbk|}j:Bp-zC/%`701{Owu?B_dJLSDJaljdlajdlajlda",
+    "SecretKey": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE",
     "Issuer": "FiapCloudGames",
     "Audience": "FiapCloudGames.API"
   },
   "RabbitMq": {
     "Host": "localhost",
     "User": "guest",
-    "Password": "guest",
+    "Password": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE",
     "OrderQueueName": "order-placed",
     "PaymentProcessQueueName": "catalog-payment-processed"
   }
@@ -541,17 +592,17 @@ FCGCatalog/
 ```json
 {
   "ConnectionStrings": {
-    "ConnectionString": "Server=localhost,1433;Database=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True"
+    "ConnectionString": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE"
   },
   "JwtSettings": {
-    "SecretKey": "_07P\\Wbk|}j:Bp-zC/%`701{Owu?B_dJLSDJaljdlajdlajlda",
+    "SecretKey": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE",
     "Issuer": "FiapCloudGames",
     "Audience": "FiapCloudGames.API"
   },
   "RabbitMq": {
     "Host": "localhost",
     "User": "guest",
-    "Password": "guest",
+    "Password": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE",
     "OrderQueueName": "order-placed",
     "PaymentProcessQueueName": "catalog-payment-processed"
   },
@@ -569,7 +620,7 @@ FCGCatalog/
 
 ```bash
 # Banco de Dados
-export ConnectionStrings__ConnectionString=Server=localhost,1433;Database=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True
+export ConnectionStrings__ConnectionString=DEFINA_LOCALMENTE
 
 # JWT
 export JwtSettings__SecretKey=sua-chave-secreta-super-segura
