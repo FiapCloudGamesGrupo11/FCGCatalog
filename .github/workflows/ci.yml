@@ -67,7 +67,7 @@ jobs:
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/fase-4-catalog-and')
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: fcg-final
+          ECR_REPOSITORY: fcg-catalog
           IMAGE_TAG: ${{ github.ref == 'refs/heads/main' && 'latest' || '1.0.0' }}
           LOCAL_IMAGE_TAG: ${{ github.sha }}
         run: |
