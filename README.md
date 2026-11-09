@@ -84,7 +84,9 @@ O resultado esperado é 17 testes aprovados, nenhuma dependência vulnerável co
 
 ### Publicação no Amazon ECR
 
-Após o restore, build, testes e build da imagem serem concluídos com sucesso, o CI publica a imagem no repositório ECR `fcg-final` na região `us-east-1`. A publicação ocorre em pushes para `main` e, para teste, para `feature/fase-4-catalog-and`; pull requests e pushes para outras branches `feature/**` não publicam imagens. A tag é o SHA completo do commit, sem atualizar a tag `latest`.
+Após o restore, build, testes e build da imagem serem concluídos com sucesso, o CI publica a imagem no repositório ECR `fcg-final` na região `us-east-1`. Pushes para `main` usam a tag `latest`; pushes para `feature/fase-4-catalog-and` usam a tag `1.0.0` para teste. Pull requests e pushes para outras branches `feature/**` não publicam imagens. O SHA do commit é usado apenas na tag local da imagem construída.
+
+As tags publicadas são reutilizadas a cada push e, portanto, podem apontar para imagens diferentes ao longo do tempo. O ECR deve permitir a sobrescrita dessas tags; se estiver configurado com tags imutáveis, um novo push para uma tag existente falhará.
 
 O repositório ECR deve existir na conta AWS configurada no workflow. A role usada pelo GitHub Actions deve confiar no provedor OIDC do GitHub para as branches `main` e `feature/fase-4-catalog-and` e permitir `ecr:GetAuthorizationToken`, além de `ecr:BatchCheckLayerAvailability`, `ecr:InitiateLayerUpload`, `ecr:UploadLayerPart`, `ecr:CompleteLayerUpload` e `ecr:PutImage` no repositório `fcg-final`. A autenticação OIDC existente também é executada nos demais eventos do CI e depende das permissões de confiança correspondentes.
 
@@ -93,7 +95,7 @@ O repositório ECR deve existir na conta AWS configurada no workflow. A role usa
 - execute a auditoria de pacotes em toda atualização de dependência;
 - mantenha as migrações do MongoDB idempotentes;
 - revise a invalidação do Redis sempre que jogos ou promoções forem alterados;
-- publique imagens com tag imutável, nunca apenas `latest`;
+- para implantações reproduzíveis, registre e utilize o digest da imagem em vez de depender de uma tag reutilizável;
 - mantenha segredos fora de arquivos versionados;
 - a integração com OpenSearch e o endpoint `/search` ainda pertencem às próximas etapas da Fase 4.
 

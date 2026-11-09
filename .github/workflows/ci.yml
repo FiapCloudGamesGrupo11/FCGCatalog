@@ -68,7 +68,8 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: fcg-final
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: ${{ github.ref == 'refs/heads/main' && 'latest' || '1.0.0' }}
+          LOCAL_IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker tag "fcg-catalog:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker tag "fcg-catalog:$LOCAL_IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
