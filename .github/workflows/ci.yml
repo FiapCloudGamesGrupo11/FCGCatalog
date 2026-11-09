@@ -36,7 +36,7 @@ jobs:
         run: dotnet test FiapCloudGames.API.sln --configuration Release --no-build --no-restore
 
       - name: Build container image
-        run: docker build --tag fcg-catalog:${{ github.sha }} .
+        run: docker build --platform linux/amd64 --provenance=false --tag fcg-catalog:${{ github.sha }} .
 
       - name: Diagnosticar Claims OIDC
         uses: actions/github-script@v7
