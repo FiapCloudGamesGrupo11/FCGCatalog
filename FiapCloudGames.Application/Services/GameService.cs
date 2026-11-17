@@ -14,6 +14,7 @@ namespace FiapCloudGames.Application.Services
         private readonly IMongoGameRepository _mongoGameRepository;
         private readonly IOnSaleRepository _onSaleRepository;
         private readonly ICacheService _cacheService;
+        private readonly IGameSearchService _gameSearchService;
         private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(1);
         private const string AllGamesCacheKey = "games:all";
 
@@ -21,12 +22,14 @@ namespace FiapCloudGames.Application.Services
             IValidationBehavior<GameRequest> validation,
             IMongoGameRepository mongoGameRepository,
             IOnSaleRepository onSaleRepository,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            IGameSearchService gameSearchService)
         {
             _validation = validation;
             _mongoGameRepository = mongoGameRepository;
             _onSaleRepository = onSaleRepository;
             _cacheService = cacheService;
+            _gameSearchService = gameSearchService;
         }
 
         private static string GameCacheKey(Guid id) => $"games:{id}";
@@ -50,6 +53,7 @@ namespace FiapCloudGames.Application.Services
 
             await _mongoGameRepository.AddAsync(game);
             await _cacheService.RemoveAsync(AllGamesCacheKey);
+            await _gameSearchService.IndexAsync(game);
 
             var CreateGame = new GameCreatedResponse(game.Id, game.Name, game.Price, game.Description, game.Category);
 
@@ -150,6 +154,7 @@ namespace FiapCloudGames.Application.Services
 
             await _cacheService.RemoveAsync(AllGamesCacheKey);
             await _cacheService.RemoveAsync(GameCacheKey(id));
+            await _gameSearchService.IndexAsync(result);
 
             return Result<GameCreatedResponse>.Success(new GameCreatedResponse(
                 result.Id,

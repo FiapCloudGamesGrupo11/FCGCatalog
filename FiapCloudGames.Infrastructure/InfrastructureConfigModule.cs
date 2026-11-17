@@ -6,6 +6,7 @@ using FiapCloudGames.Infrastructure.Persistence.Mongo;
 using FiapCloudGames.Infrastructure.Persistence.Mongo.Migrations;
 using FiapCloudGames.Infrastructure.Persistence.Redis;
 using FiapCloudGames.Infrastructure.Repository;
+using FiapCloudGames.Infrastructure.Search;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,6 +36,8 @@ namespace FiapCloudGames.Infrastructure
             services.AddHostedService<RabbitMqWorker>();
 
             services.AddScoped<ICacheService, RedisCacheService>();
+            services.Configure<OpenSearchSettings>(configuration.GetSection("OpenSearch"));
+            services.AddSingleton<IGameSearchService, OpenSearchGameSearchService>();
 
             return services;
         }

@@ -1,10 +1,113 @@
 # FCGCatalog - Microsserviço de Catálogo de Jogos
 
+## Cache de preços e promoções
+
+Após criar ou atualizar uma promoção, o `OnSaleService` invalida `games:all` e `games:{gameId}` no Redis. Se a promoção mudar de jogo, também invalida o detalhe do jogo anterior. A próxima consulta recompõe o valor com o desconto vigente. Mudanças causadas apenas pela passagem do tempo continuam limitadas pelo TTL do cache, atualmente de até um minuto. Esse comportamento é coberto por `OnSaleServiceTests`.
+
+## Busca com OpenSearch
+
+O MongoDB permanece como fonte oficial dos jogos. O OpenSearch mantém uma projeção reconstruível para busca textual com tolerância a erros e ordenação por relevância.
+
+- `GET /search?q=witchr&page=1&pageSize=20`: busca em nome, tags, gêneros, categoria, desenvolvedor, publicadora e descrição;
+- `POST /search/reindex`: rota administrativa que recria os documentos do índice a partir do MongoDB;
+- criação e atualização de jogos enviam o documento ao índice após a persistência no MongoDB;
+- falha de indexação não desfaz a gravação oficial no MongoDB e fica registrada no log.
+
+O nome recebe o maior peso de relevância, seguido por tags, gêneros e categoria. A opção `fuzziness=AUTO` permite pequenas diferenças de digitação.
+
+Configuração local:
+
+```powershell
+$env:OpenSearch__Endpoint = "http://localhost:9200"
+$env:OpenSearch__IndexName = "games-v1"
+$env:OpenSearch__UseAwsSigV4 = "false"
+```
+
+Configuração no EKS:
+
+```text
+OpenSearch__Endpoint=https://ENDPOINT_DO_DOMINIO
+OpenSearch__IndexName=games-v1
+OpenSearch__AwsRegion=us-east-1
+OpenSearch__UseAwsSigV4=true
+```
+
+Na AWS, o cliente assina as chamadas com SigV4 e usa a cadeia padrão de credenciais. O pod deve receber permissão por IAM Role; nenhuma chave AWS deve ser colocada no repositório ou no manifest.
+
 ## Descrição
 
 O **FCGCatalog** é o microsserviço central da plataforma **FIAP Cloud Games (FCG)** responsável pelo gerenciamento do catálogo de jogos, pedidos de compra e histórico de compras dos usuários. Ele fornece funcionalidades completas de catálogo de games, permitindo que usuários naveguem, comprem jogos e acompanhem seus pedidos.
 
-Este microsserviço implementa arquitetura em camadas com separação clara entre API, Aplicação, Domínio e Infraestrutura. Utiliza **JWT** para autenticação, **RabbitMQ** para comunicação assíncrona com outros microsserviços e **SQL Server** para persistência de dados.
+Este microsserviço implementa arquitetura em camadas com separação clara entre API, Aplicação, Domínio e Infraestrutura. Utiliza **JWT** para autenticação, **RabbitMQ** para comunicação assíncrona, **MongoDB** para jogos e promoções, **Redis** para cache distribuído e **SQL Server** para dados transacionais.
+
+## Fase 4 - estado da branch `feature/fase-4-catalog`
+
+### O que foi feito
+
+- pipeline de CI com restauração auditada, compilação, 17 testes automatizados e build da imagem Docker;
+- correção do teste do fluxo de compra para refletir a criação de pedido pendente antes da confirmação do pagamento;
+- atualização de dependências vulneráveis e auditoria de dependências transitivas;
+- redução do contexto do build Docker por meio do `.dockerignore`;
+- remoção de JWT e credenciais do RabbitMQ do `appsettings.json`;
+- confirmação da separação entre MongoDB, Redis e SQL Server já adotada pelo serviço.
+
+### Configuração local
+
+Defina os valores sensíveis por variáveis de ambiente. Em PowerShell:
+
+```powershell
+$env:JwtSettings__SecretKey = "VALOR_LOCAL_NAO_VERSIONADO"
+$env:RabbitMq__User = "USUARIO_LOCAL"
+$env:RabbitMq__Password = "SENHA_LOCAL"
+$env:ConnectionStrings__ConnectionString = "CONEXAO_SQL_LOCAL"
+$env:MongoSettings__ConnectionString = "CONEXAO_MONGO_LOCAL"
+$env:MongoSettings__DatabaseName = "fcg_catalog"
+$env:Redis__ConnectionString = "localhost:6379"
+```
+
+Os nomes das propriedades devem acompanhar o `appsettings.json`. Nunca registre valores reais no Git.
+
+Para usar o Docker Compose, copie `.env.example` para `.env`, substitua os marcadores e mantenha o novo arquivo somente no ambiente local.
+
+### Como testar
+
+Execute na raiz deste repositório:
+
+```powershell
+dotnet restore FiapCloudGames.API.sln -p:NuGetAudit=true -warnaserror:NU1901,NU1902,NU1903,NU1904
+dotnet test FiapCloudGames.API.sln --configuration Release --no-restore
+dotnet list FiapCloudGames.API.sln package --vulnerable --include-transitive
+docker build --tag fcg-catalog:local .
+```
+
+O resultado esperado é 17 testes aprovados, nenhuma dependência vulnerável conhecida e uma imagem Docker criada com sucesso.
+
+### Publicação no Amazon ECR
+
+Após o restore, build, testes e build da imagem serem concluídos com sucesso, o CI publica a imagem no repositório ECR `fcg-catalog` na região `us-east-1`. Pushes para `main` usam a tag `latest`; pushes para `feature/fase-4-catalog-and` usam a tag `1.0.0` para teste. Pull requests e pushes para outras branches `feature/**` não publicam imagens. O SHA do commit é usado apenas na tag local da imagem construída.
+
+O build gera uma imagem para `linux/amd64`, sem attestation de provenance. Isso não remove imagens ou manifestos já existentes no ECR: as tags `latest` e `1.0.0` podem continuar apontando para imagens diferentes, e imagens antigas podem permanecer sem tag.
+
+As tags publicadas são reutilizadas a cada push e, portanto, podem apontar para imagens diferentes ao longo do tempo. O ECR deve permitir a sobrescrita dessas tags; se estiver configurado com tags imutáveis, um novo push para uma tag existente falhará.
+
+O repositório ECR deve existir na conta AWS configurada no workflow. A role usada pelo GitHub Actions deve confiar no provedor OIDC do GitHub para as branches `main` e `feature/fase-4-catalog-and` e permitir `ecr:GetAuthorizationToken` no recurso `*`, além de `ecr:BatchCheckLayerAvailability`, `ecr:InitiateLayerUpload`, `ecr:UploadLayerPart`, `ecr:CompleteLayerUpload` e `ecr:PutImage` no repositório `fcg-catalog`. As etapas de autenticação e publicação na AWS são executadas apenas nos pushes dessas branches.
+
+### Deploy no Amazon EKS
+
+Após a publicação, o CI atualiza o container `catalog-api` do Deployment `catalog-api`, no namespace `default` do cluster `fcg-prod-cluster` em `us-east-1`, e aguarda o rollout. A imagem é identificada pelo digest retornado pelo push, não pela tag reutilizável. A `main` e a branch de teste fazem deploy no **mesmo ambiente** e podem substituir a versão uma da outra; os jobs de deploy não são executados simultaneamente.
+
+O workflow não baixa nem aplica os manifests do FCGInfra: o cluster, o Deployment e suas dependências devem ser preparados separadamente. A role de OIDC também precisa de `eks:DescribeCluster`, acesso Kubernetes para atualizar e acompanhar o Deployment, e conectividade do runner ao endpoint do EKS. Os nós precisam de permissão e conectividade para baixar imagens do ECR.
+
+Antes do deploy, confirme que `configmapcommon`, `secretfcg` e `newrelic-secret` existem no namespace `default`. O catálogo exige `JwtSettings__SecretKey` e usa `RabbitMq__User`, `RabbitMq__Password`, `RabbitMq__OrderQueueName` e `RabbitMq__PaymentProcessQueueName`; alinhe esses nomes com os recursos aplicados, usando um usuário RabbitMQ próprio e credenciais fornecidas fora do Git. SQL Server e MongoDB devem estar disponíveis para as migrações na inicialização; Redis e OpenSearch também precisam ser configurados para as funcionalidades que os utilizam. O Service `ClusterIP` do catálogo não fornece acesso público por si só.
+
+### Como manter
+
+- execute a auditoria de pacotes em toda atualização de dependência;
+- mantenha as migrações do MongoDB idempotentes;
+- revise a invalidação do Redis sempre que jogos ou promoções forem alterados;
+- para implantações reproduzíveis, registre e utilize o digest da imagem em vez de depender de uma tag reutilizável;
+- mantenha segredos fora de arquivos versionados;
+- a integração com OpenSearch e o endpoint `/search` ainda pertencem às próximas etapas da Fase 4.
 
 ---
 
@@ -97,7 +200,7 @@ docker-compose ps
 # Use Docker apenas para SQL Server
 docker run -d --name sqlserver \
   -e 'ACCEPT_EULA=Y' \
-  -e 'MSSQL_SA_PASSWORD=Your_strong!Passw0rd' \
+  -e 'MSSQL_SA_PASSWORD=DEFINA_LOCALMENTE' \
   -p 1433:1433 \
   mcr.microsoft.com/mssql/server:2022-latest
 ```
@@ -117,17 +220,17 @@ docker run -d --name rabbitmq \
 ```json
 {
   "ConnectionStrings": {
-    "ConnectionString": "Server=localhost,1433;Database=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True"
+    "ConnectionString": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE"
   },
   "JwtSettings": {
-    "SecretKey": "_07P\\Wbk|}j:Bp-zC/%`701{Owu?B_dJLSDJaljdlajdlajlda",
+    "SecretKey": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE",
     "Issuer": "FiapCloudGames",
     "Audience": "FiapCloudGames.API"
   },
   "RabbitMq": {
     "Host": "localhost",
     "User": "guest",
-    "Password": "guest",
+    "Password": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE",
     "OrderQueueName": "order-placed",
     "PaymentProcessQueueName": "catalog-payment-processed"
   }
@@ -541,17 +644,17 @@ FCGCatalog/
 ```json
 {
   "ConnectionStrings": {
-    "ConnectionString": "Server=localhost,1433;Database=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True"
+    "ConnectionString": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE"
   },
   "JwtSettings": {
-    "SecretKey": "_07P\\Wbk|}j:Bp-zC/%`701{Owu?B_dJLSDJaljdlajdlajlda",
+    "SecretKey": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE",
     "Issuer": "FiapCloudGames",
     "Audience": "FiapCloudGames.API"
   },
   "RabbitMq": {
     "Host": "localhost",
     "User": "guest",
-    "Password": "guest",
+    "Password": "DEFINA_VIA_VARIAVEL_DE_AMBIENTE",
     "OrderQueueName": "order-placed",
     "PaymentProcessQueueName": "catalog-payment-processed"
   },
@@ -569,7 +672,7 @@ FCGCatalog/
 
 ```bash
 # Banco de Dados
-export ConnectionStrings__ConnectionString=Server=localhost,1433;Database=FiapCloudGames;User Id=sa;Password=Your_strong!Passw0rd;TrustServerCertificate=True
+export ConnectionStrings__ConnectionString=DEFINA_LOCALMENTE
 
 # JWT
 export JwtSettings__SecretKey=sua-chave-secreta-super-segura
