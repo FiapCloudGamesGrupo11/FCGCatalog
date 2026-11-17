@@ -108,30 +108,6 @@ var app = builder.Build();
 // Aplica migrations do SQL Server e seed do MongoDB
 await app.Services.MigrateAndSeedInfrastructureAsync();
 
-// Após as migrations, adiciona o SQL Server como destino dos logs
-var connectionString = builder.Configuration
-    .GetConnectionString("ConnectionString");
-
-var sqlSink = new Serilog.Sinks.MSSqlServer.MSSqlServerSinkOptions
-{
-    TableName = "Logs",
-    AutoCreateSqlTable = true
-};
-
-var logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.MSSqlServer(
-        connectionString: connectionString,
-        sinkOptions: sqlSink)
-    .CreateLogger();
-
-// Substitui o logger inicial
-Log.Logger = logger;
-app.Services.GetRequiredService<ILoggerFactory>()
-    .AddSerilog(logger, dispose: true);
-
 app.MapHealthChecks("/health");
 
 
