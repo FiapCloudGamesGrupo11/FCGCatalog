@@ -82,12 +82,30 @@ docker build --tag fcg-catalog:local .
 
 O resultado esperado é 17 testes aprovados, nenhuma dependência vulnerável conhecida e uma imagem Docker criada com sucesso.
 
+### Publicação no Amazon ECR
+
+Após o restore, build, testes e build da imagem serem concluídos com sucesso, o CI publica a imagem no repositório ECR `fcg-catalog` na região `us-east-1`. Pushes para `main` usam a tag `latest`; pushes para `feature/fase-4-catalog-and` usam a tag `1.0.0` para teste. Pull requests e pushes para outras branches `feature/**` não publicam imagens. O SHA do commit é usado apenas na tag local da imagem construída.
+
+O build gera uma imagem para `linux/amd64`, sem attestation de provenance. Isso não remove imagens ou manifestos já existentes no ECR: as tags `latest` e `1.0.0` podem continuar apontando para imagens diferentes, e imagens antigas podem permanecer sem tag.
+
+As tags publicadas são reutilizadas a cada push e, portanto, podem apontar para imagens diferentes ao longo do tempo. O ECR deve permitir a sobrescrita dessas tags; se estiver configurado com tags imutáveis, um novo push para uma tag existente falhará.
+
+O repositório ECR deve existir na conta AWS configurada no workflow. A role usada pelo GitHub Actions deve confiar no provedor OIDC do GitHub para as branches `main` e `feature/fase-4-catalog-and` e permitir `ecr:GetAuthorizationToken` no recurso `*`, além de `ecr:BatchCheckLayerAvailability`, `ecr:InitiateLayerUpload`, `ecr:UploadLayerPart`, `ecr:CompleteLayerUpload` e `ecr:PutImage` no repositório `fcg-catalog`. As etapas de autenticação e publicação na AWS são executadas apenas nos pushes dessas branches.
+
+### Deploy no Amazon EKS
+
+Após a publicação, o CI atualiza o container `catalog-api` do Deployment `catalog-api`, no namespace `default` do cluster `fcg-prod-cluster` em `us-east-1`, e aguarda o rollout. A imagem é identificada pelo digest retornado pelo push, não pela tag reutilizável. A `main` e a branch de teste fazem deploy no **mesmo ambiente** e podem substituir a versão uma da outra; os jobs de deploy não são executados simultaneamente.
+
+O workflow não baixa nem aplica os manifests do FCGInfra: o cluster, o Deployment e suas dependências devem ser preparados separadamente. A role de OIDC também precisa de `eks:DescribeCluster`, acesso Kubernetes para atualizar e acompanhar o Deployment, e conectividade do runner ao endpoint do EKS. Os nós precisam de permissão e conectividade para baixar imagens do ECR.
+
+Antes do deploy, confirme que `configmapcommon`, `secretfcg` e `newrelic-secret` existem no namespace `default`. O catálogo exige `JwtSettings__SecretKey` e usa `RabbitMq__User`, `RabbitMq__Password`, `RabbitMq__OrderQueueName` e `RabbitMq__PaymentProcessQueueName`; alinhe esses nomes com os recursos aplicados, usando um usuário RabbitMQ próprio e credenciais fornecidas fora do Git. SQL Server e MongoDB devem estar disponíveis para as migrações na inicialização; Redis e OpenSearch também precisam ser configurados para as funcionalidades que os utilizam. O Service `ClusterIP` do catálogo não fornece acesso público por si só.
+
 ### Como manter
 
 - execute a auditoria de pacotes em toda atualização de dependência;
 - mantenha as migrações do MongoDB idempotentes;
 - revise a invalidação do Redis sempre que jogos ou promoções forem alterados;
-- publique imagens com tag imutável, nunca apenas `latest`;
+- para implantações reproduzíveis, registre e utilize o digest da imagem em vez de depender de uma tag reutilizável;
 - mantenha segredos fora de arquivos versionados;
 - a integração com OpenSearch e o endpoint `/search` ainda pertencem às próximas etapas da Fase 4.
 
